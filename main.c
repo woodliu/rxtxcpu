@@ -19,7 +19,7 @@
 #include <stdbool.h>  // for bool, false, true
 #include <stdio.h>    // for fprintf(), fputs(), printf(), puts(), sprintf(),
                       //     stderr
-#include <stdlib.h>   // for exit(), malloc()
+#include <stdlib.h>   // for malloc()
 #include <string.h>   // for GNU basename(), memset(), strcmp(), strlen()
 #include <unistd.h>   // for _SC_NPROCESSORS_CONF, sysconf()
 
@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
 
       case 'V':
         printf("%s version %s\n", mgr_args->program_basename, RXTXCPU_VERSION);
-        exit(0);
+        return EXIT_OK;
 
       case 'w':
         mgr_args->pcap_filename = optarg;
@@ -254,7 +254,7 @@ int main(int argc, char **argv) {
 
   if (help) {
     usage(mgr_args->program_basename);
-    exit(0);
+    return EXIT_OK;
   }
 
   if (cpu_list && cpu_mask) {
