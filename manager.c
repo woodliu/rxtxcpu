@@ -242,7 +242,7 @@ int manager(struct manager_arguments *args) {
   /*
    * Setup our signal handlers before spinning up workers.
    */
-  setup_signals(args->program_basename);
+  setup_signals();
 
   /*
    * This loop spins up our workers. Each worker is affine to a single

@@ -21,7 +21,7 @@ void sigint_handler(int signal) {
   write(STDERR_FILENO, "\n", 1);
 }
 
-int setup_signals(char *program_basename) {
+int setup_signals(void) {
   struct sigaction sa;
 
   /*

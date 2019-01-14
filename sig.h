@@ -13,9 +13,10 @@
 
 #include <signal.h> // for sig_atomic_t
 
+extern char *program_basename;
 extern volatile sig_atomic_t keep_running;
 
 void sigint_handler(int signal);
-int setup_signals(char *program_basename);
+int setup_signals(void);
 
 #endif // _SIG_H_
