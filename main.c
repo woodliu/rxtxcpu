@@ -92,18 +92,17 @@ static void usage_short(char *program_name) {
 }
 
 int main(int argc, char **argv) {
-  struct manager_arguments m_args;
-  struct manager_arguments *mgr_args = &m_args;
-  memset(mgr_args, 0, sizeof(*mgr_args));
+  struct manager_arguments args;
+  memset(&args, 0, sizeof(args));
 
-  mgr_args->program_fullname = argv[0];
-  mgr_args->program_basename = basename(mgr_args->program_fullname);
-  mgr_args->packet_count     = 0;
-  mgr_args->capture_rx       = true;
-  mgr_args->capture_tx       = true;
-  mgr_args->packet_buffered  = false;
-  mgr_args->promiscuous      = false;
-  mgr_args->verbose          = false;
+  args.program_fullname = argv[0];
+  args.program_basename = basename(args.program_fullname);
+  args.packet_count     = 0;
+  args.capture_rx       = true;
+  args.capture_tx       = true;
+  args.packet_buffered  = false;
+  args.promiscuous      = false;
+  args.verbose          = false;
 
   char *cpu_list = NULL;
   char *cpu_mask = NULL;
@@ -114,12 +113,12 @@ int main(int argc, char **argv) {
   /*
    * capture_rx and capture_tx defaults are based on the invocation.
    */
-  if (strcmp(mgr_args->program_basename, "rxcpu") == 0) {
-    mgr_args->capture_tx = false;
+  if (strcmp(args.program_basename, "rxcpu") == 0) {
+    args.capture_tx = false;
   }
 
-  if (strcmp(mgr_args->program_basename, "txcpu") == 0) {
-    mgr_args->capture_rx = false;
+  if (strcmp(args.program_basename, "txcpu") == 0) {
+    args.capture_rx = false;
   }
 
   int c;
@@ -133,27 +132,27 @@ int main(int argc, char **argv) {
   while ((c = getopt_long(argc, argv, ":c:d:hl:m:pUvVw:", long_options, 0)) != -1) {
     switch (c) {
       case 'c':
-        mgr_args->packet_count = strtoumax(optarg, &endptr, OPTION_COUNT_BASE);
+        args.packet_count = strtoumax(optarg, &endptr, OPTION_COUNT_BASE);
         if (*endptr) {
-          fprintf(stderr, "%s: Invalid count '%s'.\n", mgr_args->program_basename, optarg);
-          usage_short(mgr_args->program_basename);
+          fprintf(stderr, "%s: Invalid count '%s'.\n", args.program_basename, optarg);
+          usage_short(args.program_basename);
           return EXIT_FAIL_OPTION;
         }
         break;
 
       case 'd':
         if (strcmp(optarg, "rx") == 0) {
-          mgr_args->capture_rx = true;
-          mgr_args->capture_tx = false;
+          args.capture_rx = true;
+          args.capture_tx = false;
         } else if (strcmp(optarg, "tx") == 0) {
-          mgr_args->capture_rx = false;
-          mgr_args->capture_tx = true;
+          args.capture_rx = false;
+          args.capture_tx = true;
         } else if (strcmp(optarg, "rxtx") == 0) {
-          mgr_args->capture_rx = true;
-          mgr_args->capture_tx = true;
+          args.capture_rx = true;
+          args.capture_tx = true;
         } else {
-          fprintf(stderr, "%s: Invalid direction '%s'.\n", mgr_args->program_basename, optarg);
-          usage_short(mgr_args->program_basename);
+          fprintf(stderr, "%s: Invalid direction '%s'.\n", args.program_basename, optarg);
+          usage_short(args.program_basename);
           return EXIT_FAIL_OPTION;
         }
         break;
@@ -164,45 +163,45 @@ int main(int argc, char **argv) {
 
       case 'l':
         cpu_list = optarg;
-        if (parse_cpu_list(optarg, &(mgr_args->capture_cpu_set))) {
-          fprintf(stderr, "%s: Invalid cpu list '%s'.\n", mgr_args->program_basename, optarg);
-          usage_short(mgr_args->program_basename);
+        if (parse_cpu_list(optarg, &(args.capture_cpu_set))) {
+          fprintf(stderr, "%s: Invalid cpu list '%s'.\n", args.program_basename, optarg);
+          usage_short(args.program_basename);
           return EXIT_FAIL_OPTION;
         }
         break;
 
       case 'm':
         cpu_mask = optarg;
-        if (parse_cpu_mask(optarg, &(mgr_args->capture_cpu_set))) {
-          fprintf(stderr, "%s: Invalid cpu mask '%s'.\n", mgr_args->program_basename, optarg);
-          usage_short(mgr_args->program_basename);
+        if (parse_cpu_mask(optarg, &(args.capture_cpu_set))) {
+          fprintf(stderr, "%s: Invalid cpu mask '%s'.\n", args.program_basename, optarg);
+          usage_short(args.program_basename);
           return EXIT_FAIL_OPTION;
         }
         break;
 
       case 'p':
-        mgr_args->promiscuous = true;
+        args.promiscuous = true;
         break;
 
       case 'U':
-        mgr_args->packet_buffered = true;
+        args.packet_buffered = true;
         break;
 
       case 'v':
-        mgr_args->verbose = true;
+        args.verbose = true;
         break;
 
       case 'V':
-        printf("%s version %s\n", mgr_args->program_basename, RXTXCPU_VERSION);
+        printf("%s version %s\n", args.program_basename, RXTXCPU_VERSION);
         return EXIT_OK;
 
       case 'w':
-        mgr_args->pcap_filename = optarg;
+        args.pcap_filename = optarg;
         break;
 
       case ':':  /* missing option argument */
-        fprintf(stderr, "%s: Option '%s' requires an argument.\n", mgr_args->program_basename, argv[optind-1]);
-        usage_short(mgr_args->program_basename);
+        fprintf(stderr, "%s: Option '%s' requires an argument.\n", args.program_basename, argv[optind-1]);
+        usage_short(args.program_basename);
         return EXIT_FAIL_OPTION;
 
       case '?':  /* invalid option */
@@ -245,46 +244,46 @@ int main(int argc, char **argv) {
         } else {
           badopt = argv[optind-1];
         }
-        fprintf(stderr, "%s: Unrecognized option '%s'.\n", mgr_args->program_basename, badopt);
+        fprintf(stderr, "%s: Unrecognized option '%s'.\n", args.program_basename, badopt);
         free(badopt);
-        usage_short(mgr_args->program_basename);
+        usage_short(args.program_basename);
         return EXIT_FAIL_OPTION;
       }
   }
 
   if (help) {
-    usage(mgr_args->program_basename);
+    usage(args.program_basename);
     return EXIT_OK;
   }
 
   if (cpu_list && cpu_mask) {
-    fprintf(stderr, "%s: -l [--cpu-list] and -m [--cpu-mask] are mutually exclusive.\n", mgr_args->program_basename);
-    usage_short(mgr_args->program_basename);
+    fprintf(stderr, "%s: -l [--cpu-list] and -m [--cpu-mask] are mutually exclusive.\n", args.program_basename);
+    usage_short(args.program_basename);
     return EXIT_FAIL_OPTION;
   }
 
   /*
    * We need to know how many processors are configured.
    */
-  mgr_args->processor_count = sysconf(_SC_NPROCESSORS_CONF);
-  if (mgr_args->processor_count <= 0) {
-    fprintf(stderr, "%s: Failed to get processor count.\n", mgr_args->program_basename);
+  args.processor_count = sysconf(_SC_NPROCESSORS_CONF);
+  if (args.processor_count <= 0) {
+    fprintf(stderr, "%s: Failed to get processor count.\n", args.program_basename);
     return EXIT_FAIL_OPTION;
   }
 
-  if (mgr_args->verbose) {
-    fprintf(stderr, "Found '%d' processors.\n", mgr_args->processor_count);
+  if (args.verbose) {
+    fprintf(stderr, "Found '%d' processors.\n", args.processor_count);
   }
 
-  if (CPU_COUNT(&(mgr_args->capture_cpu_set)) == 0) {
-    for (int i = 0; i < mgr_args->processor_count; i++) {
-      CPU_SET(i, &(mgr_args->capture_cpu_set));
+  if (CPU_COUNT(&(args.capture_cpu_set)) == 0) {
+    for (int i = 0; i < args.processor_count; i++) {
+      CPU_SET(i, &(args.capture_cpu_set));
     }
   }
 
   worker_count = 0;
-  for (int i = 0; i < mgr_args->processor_count; i++) {
-    if (CPU_ISSET(i, &(mgr_args->capture_cpu_set))) {
+  for (int i = 0; i < args.processor_count; i++) {
+    if (CPU_ISSET(i, &(args.capture_cpu_set))) {
       worker_count++;
     }
   }
@@ -292,23 +291,23 @@ int main(int argc, char **argv) {
     fprintf(
       stderr,
       "%s: No configured cpus present in cpu %s.\n",
-      mgr_args->program_basename,
+      args.program_basename,
       cpu_list ? "list" : "mask"
     );
-    usage_short(mgr_args->program_basename);
+    usage_short(args.program_basename);
     return EXIT_FAIL_OPTION;
   }
 
   if (get_online_cpu_set(&online_cpu_set) != 0) {
-    fprintf(stderr, "%s: Failed to get online cpu set.\n", mgr_args->program_basename);
+    fprintf(stderr, "%s: Failed to get online cpu set.\n", args.program_basename);
     return EXIT_FAIL_OPTION;
   }
 
-  if (CPU_COUNT(&online_cpu_set) != mgr_args->processor_count) {
-    for (int i = 0; i < mgr_args->processor_count; i++) {
+  if (CPU_COUNT(&online_cpu_set) != args.processor_count) {
+    for (int i = 0; i < args.processor_count; i++) {
       if (!CPU_ISSET(i, &online_cpu_set)) {
-        CPU_CLR(i, &(mgr_args->capture_cpu_set));
-        if (mgr_args->verbose) {
+        CPU_CLR(i, &(args.capture_cpu_set));
+        if (args.verbose) {
           fprintf(stderr, "Skipping cpu '%d' since it is offline.\n", i);
         }
       }
@@ -316,8 +315,8 @@ int main(int argc, char **argv) {
   }
 
   worker_count = 0;
-  for (int i = 0; i < mgr_args->processor_count; i++) {
-    if (CPU_ISSET(i, &(mgr_args->capture_cpu_set))) {
+  for (int i = 0; i < args.processor_count; i++) {
+    if (CPU_ISSET(i, &(args.capture_cpu_set))) {
       worker_count++;
     }
   }
@@ -325,45 +324,45 @@ int main(int argc, char **argv) {
     fprintf(
       stderr,
       "%s: No online cpus present in cpu %s.\n",
-      mgr_args->program_basename,
+      args.program_basename,
       cpu_list ? "list" : "mask"
     );
-    usage_short(mgr_args->program_basename);
+    usage_short(args.program_basename);
     return EXIT_FAIL_OPTION;
   }
 
-  if (mgr_args->pcap_filename &&
-      strcmp(mgr_args->pcap_filename, "-") == 0 &&
-      CPU_COUNT(&(mgr_args->capture_cpu_set)) != 1) {
+  if (args.pcap_filename &&
+      strcmp(args.pcap_filename, "-") == 0 &&
+      CPU_COUNT(&(args.capture_cpu_set)) != 1) {
     fprintf(
       stderr,
       "%s: Write file '%s' (stdout) is only permitted when capturing on a single cpu.\n",
-      mgr_args->program_basename,
-      mgr_args->pcap_filename
+      args.program_basename,
+      args.pcap_filename
     );
-    usage_short(mgr_args->program_basename);
+    usage_short(args.program_basename);
     return EXIT_FAIL_OPTION;
   }
 
   if ((optind + 1) < argc) {
-    fprintf(stderr, "%s: Only one interface argument is allowed (got [ ", mgr_args->program_basename);
+    fprintf(stderr, "%s: Only one interface argument is allowed (got [ ", args.program_basename);
     for (; optind < argc; optind++) {
       fprintf(stderr, "'%s'", argv[optind]);
       if ((optind + 1) < argc)
         fputs(", ", stderr);
     }
     fputs(" ]).\n", stderr);
-    usage_short(mgr_args->program_basename);
+    usage_short(args.program_basename);
     return EXIT_FAIL_OPTION;
   }
 
   if (optind == argc) {
-    mgr_args->ifname = NULL;
+    args.ifname = NULL;
   } else {
-    mgr_args->ifname = argv[optind];
+    args.ifname = argv[optind];
   }
 
-  if (manager(mgr_args) == -1) {
+  if (manager(&args) == -1) {
     return EXIT_FAIL;
   }
 
