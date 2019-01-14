@@ -27,8 +27,6 @@
 #define EXIT_FAIL        1
 #define EXIT_FAIL_OPTION 2
 
-#define RETURN_BAD 2 /* match EXIT_FAIL_OPTION */
-
 #define MAX_SHORT_BADOPT_LENGTH 2
 #define OPTION_COUNT_BASE 10
 #define OPTION_CPU_LIST_BASE 10
@@ -139,7 +137,7 @@ int main(int argc, char **argv) {
         if (*endptr) {
           fprintf(stderr, "%s: Invalid count '%s'.\n", mgr_args->program_basename, optarg);
           usage_short(mgr_args->program_basename);
-          return RETURN_BAD;
+          return EXIT_FAIL_OPTION;
         }
         break;
 
@@ -156,7 +154,7 @@ int main(int argc, char **argv) {
         } else {
           fprintf(stderr, "%s: Invalid direction '%s'.\n", mgr_args->program_basename, optarg);
           usage_short(mgr_args->program_basename);
-          return RETURN_BAD;
+          return EXIT_FAIL_OPTION;
         }
         break;
 
@@ -169,7 +167,7 @@ int main(int argc, char **argv) {
         if (parse_cpu_list(optarg, &(mgr_args->capture_cpu_set))) {
           fprintf(stderr, "%s: Invalid cpu list '%s'.\n", mgr_args->program_basename, optarg);
           usage_short(mgr_args->program_basename);
-          return RETURN_BAD;
+          return EXIT_FAIL_OPTION;
         }
         break;
 
@@ -178,7 +176,7 @@ int main(int argc, char **argv) {
         if (parse_cpu_mask(optarg, &(mgr_args->capture_cpu_set))) {
           fprintf(stderr, "%s: Invalid cpu mask '%s'.\n", mgr_args->program_basename, optarg);
           usage_short(mgr_args->program_basename);
-          return RETURN_BAD;
+          return EXIT_FAIL_OPTION;
         }
         break;
 
@@ -205,7 +203,7 @@ int main(int argc, char **argv) {
       case ':':  /* missing option argument */
         fprintf(stderr, "%s: Option '%s' requires an argument.\n", mgr_args->program_basename, argv[optind-1]);
         usage_short(mgr_args->program_basename);
-        return RETURN_BAD;
+        return EXIT_FAIL_OPTION;
 
       case '?':  /* invalid option */
       default:   /* invalid option in optstring */
@@ -250,7 +248,7 @@ int main(int argc, char **argv) {
         fprintf(stderr, "%s: Unrecognized option '%s'.\n", mgr_args->program_basename, badopt);
         free(badopt);
         usage_short(mgr_args->program_basename);
-        return RETURN_BAD;
+        return EXIT_FAIL_OPTION;
       }
   }
 
@@ -262,7 +260,7 @@ int main(int argc, char **argv) {
   if (cpu_list && cpu_mask) {
     fprintf(stderr, "%s: -l [--cpu-list] and -m [--cpu-mask] are mutually exclusive.\n", mgr_args->program_basename);
     usage_short(mgr_args->program_basename);
-    return RETURN_BAD;
+    return EXIT_FAIL_OPTION;
   }
 
   /*
@@ -271,7 +269,7 @@ int main(int argc, char **argv) {
   mgr_args->processor_count = sysconf(_SC_NPROCESSORS_CONF);
   if (mgr_args->processor_count <= 0) {
     fprintf(stderr, "%s: Failed to get processor count.\n", mgr_args->program_basename);
-    return RETURN_BAD;
+    return EXIT_FAIL_OPTION;
   }
 
   if (mgr_args->verbose) {
@@ -298,12 +296,12 @@ int main(int argc, char **argv) {
       cpu_list ? "list" : "mask"
     );
     usage_short(mgr_args->program_basename);
-    return RETURN_BAD;
+    return EXIT_FAIL_OPTION;
   }
 
   if (get_online_cpu_set(&online_cpu_set) != 0) {
     fprintf(stderr, "%s: Failed to get online cpu set.\n", mgr_args->program_basename);
-    return RETURN_BAD;
+    return EXIT_FAIL_OPTION;
   }
 
   if (CPU_COUNT(&online_cpu_set) != mgr_args->processor_count) {
@@ -331,7 +329,7 @@ int main(int argc, char **argv) {
       cpu_list ? "list" : "mask"
     );
     usage_short(mgr_args->program_basename);
-    return RETURN_BAD;
+    return EXIT_FAIL_OPTION;
   }
 
   if (mgr_args->pcap_filename &&
@@ -344,7 +342,7 @@ int main(int argc, char **argv) {
       mgr_args->pcap_filename
     );
     usage_short(mgr_args->program_basename);
-    return RETURN_BAD;
+    return EXIT_FAIL_OPTION;
   }
 
   if ((optind + 1) < argc) {
@@ -356,7 +354,7 @@ int main(int argc, char **argv) {
     }
     fputs(" ]).\n", stderr);
     usage_short(mgr_args->program_basename);
-    return RETURN_BAD;
+    return EXIT_FAIL_OPTION;
   }
 
   if (optind == argc) {
