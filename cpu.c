@@ -104,7 +104,8 @@ int parse_cpu_list(char *cpu_list, cpu_set_t *cpu_set) {
   while ((range = strsep(&string, ",")) != NULL) {
     int first = strtol(range, &endptr, CPU_LIST_BASE);
     /*
-     * When there is no endptr this is a single cpu in the cpu list, not a range.
+     * When there is no endptr this is a single cpu in the cpu list, not a
+     * range.
      */
     if (!*endptr) {
       CPU_SET(first, cpu_set);
@@ -115,9 +116,12 @@ int parse_cpu_list(char *cpu_list, cpu_set_t *cpu_set) {
     int last = strtol(endptr, &endptr, CPU_LIST_BASE);
     /*
      * Here we check the following.
-     *   1. Ensure save[0] (endptr from the strtol() operation to find first) contains our range delimiter, '-'.
-     *   2. Ensure endptr (endptr from the strtol() operation to find last) is NULL.
-     *   3. Ensure that last is not less than first (procfs accepts ranges where last equals first, so we will too).
+     *   1. Ensure save[0] (endptr from the strtol() operation to find first)
+     *      contains our range delimiter, '-'.
+     *   2. Ensure endptr (endptr from the strtol() operation to find last) is
+     *      NULL.
+     *   3. Ensure that last is not less than first (procfs accepts ranges where
+     *      last equals first, so we will too).
      */
     if (save[0] != '-' || *endptr || last < first) {
       return RETURN_BAD;
