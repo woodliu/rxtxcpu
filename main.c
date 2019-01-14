@@ -246,7 +246,7 @@ int main(int argc, char **argv) {
         free(badopt);
         usage_short();
         return EXIT_FAIL_OPTION;
-      }
+    }
   }
 
   if (help) {
