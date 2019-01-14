@@ -100,22 +100,13 @@ int main(int argc, char **argv) {
 
   args.program_fullname = argv[0];
   args.program_basename = program_basename;
-  args.packet_count     = 0;
-  args.capture_rx       = true;
-  args.capture_tx       = true;
-  args.packet_buffered  = false;
-  args.promiscuous      = false;
-  args.verbose          = false;
-
-  char *cpu_list = NULL;
-  char *cpu_mask = NULL;
-  bool help = false;
-  int worker_count;
-  cpu_set_t online_cpu_set;
 
   /*
    * capture_rx and capture_tx defaults are based on the invocation.
    */
+  args.capture_rx = true;
+  args.capture_tx = true;
+
   if (strcmp(program_basename, "rxcpu") == 0) {
     args.capture_tx = false;
   }
@@ -125,8 +116,12 @@ int main(int argc, char **argv) {
   }
 
   int c;
-  char *badopt;
-  char *endptr;
+  char *badopt = NULL;
+  char *cpu_list = NULL;
+  char *cpu_mask = NULL;
+  char *endptr = NULL;
+  bool help = false;
+
   /*
    * optstring must start with ":" so ':' is returned for a missing option
    * argument. Otherwise '?' is returned for both invalid option and missing
@@ -284,7 +279,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  worker_count = 0;
+  int worker_count = 0;
   for (int i = 0; i < args.processor_count; i++) {
     if (CPU_ISSET(i, &(args.capture_cpu_set))) {
       worker_count++;
@@ -301,6 +296,7 @@ int main(int argc, char **argv) {
     return EXIT_FAIL_OPTION;
   }
 
+  cpu_set_t online_cpu_set;
   if (get_online_cpu_set(&online_cpu_set) != 0) {
     fprintf(stderr, "%s: Failed to get online cpu set.\n", program_basename);
     return EXIT_FAIL_OPTION;
