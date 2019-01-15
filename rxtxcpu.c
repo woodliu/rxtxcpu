@@ -266,7 +266,7 @@ int main(int argc, char **argv) {
   args.processor_count = sysconf(_SC_NPROCESSORS_CONF);
   if (args.processor_count <= 0) {
     fprintf(stderr, "%s: Failed to get processor count.\n", program_basename);
-    return EXIT_FAIL_OPTION;
+    return EXIT_FAIL;
   }
 
   if (args.verbose) {
