@@ -6,7 +6,7 @@ include VERSION
 
 all: rxtxcpu rxcpu txcpu
 
-cli.o: EXTRA_CFLAGS = \
+main.o: EXTRA_CFLAGS = \
 	-std=c99 \
 	'-DRXTXCPU_VERSION="$(RXTXCPU_VERSION)"'
 
@@ -16,7 +16,7 @@ cpu.o manager.o: EXTRA_CFLAGS = \
 %.o: %.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 
-rxtxcpu rxcpu txcpu: cli.o cpu.o ext.o interface.o main.o manager.o sig.o worker.o
+rxtxcpu rxcpu txcpu: cpu.o ext.o interface.o main.o manager.o sig.o worker.o
 	$(CC) $(CFLAGS) -o rxtxcpu $^ -lpcap -lpthread
 	rm -f rxcpu txcpu
 	ln -s rxtxcpu rxcpu
@@ -24,7 +24,7 @@ rxtxcpu rxcpu txcpu: cli.o cpu.o ext.o interface.o main.o manager.o sig.o worker
 
 .PHONY: clean
 clean:
-	rm -f cli.o cpu.o ext.o interface.o main.o manager.o sig.o worker.o rxtxcpu rxcpu txcpu
+	rm -f cpu.o ext.o interface.o main.o manager.o sig.o worker.o rxtxcpu rxcpu txcpu
 
 .PHONY: install
 install: rxtxcpu rxcpu txcpu
