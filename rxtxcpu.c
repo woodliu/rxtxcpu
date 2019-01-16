@@ -8,17 +8,24 @@
 
 #define _GNU_SOURCE // for GNU basename()
 
-#include "cpu.h"     // for get_online_cpu_set(), parse_cpu_list(),
-                     //     parse_cpu_mask()
-#include "manager.h" // for manager(), manager_arguments
+#include "cpu.h"  // for get_online_cpu_set(), parse_cpu_list(),
+                  //     parse_cpu_mask()
+#include "rxtx.h" // for program_basename, rxtx_args, rxtx_desc, rxtx_close(),
+                  //     rxtx_loop(), rxtx_open()
+#include "sig.h"  // for setup_signals()
+
+#include <linux/if_packet.h> // for PACKET_FANOUT_CPU
 
 #include <getopt.h>   // for getopt_long(), optarg, optind, option, optopt
 #include <inttypes.h> // for strtoumax()
+#include <pthread.h>  // for pthread_attr_destroy(), pthread_attr_init(),
+                      //     pthread_attr_setaffinity_np(), pthread_attr_t,
+                      //     pthread_create(), pthread_join(), pthread_t
 #include <sched.h>    // for CPU_CLR(), CPU_COUNT(), CPU_ISSET(), CPU_SET(),
                       //     cpu_set_t
 #include <stdbool.h>  // for bool, false, true
-#include <stdio.h>    // for fprintf(), fputs(), printf(), puts(), sprintf(),
-                      //     stderr
+#include <stdio.h>    // for FILE, fprintf(), fputs(), NULL, printf(), puts(),
+                      //     sprintf(), stderr, stdout
 #include <stdlib.h>   // for malloc()
 #include <string.h>   // for GNU basename(), memset(), strcmp(), strlen()
 #include <unistd.h>   // for _SC_NPROCESSORS_CONF, sysconf()
@@ -30,8 +37,6 @@
 #define MAX_SHORT_BADOPT_LENGTH 2
 #define OPTION_COUNT_BASE 10
 #define OPTION_CPU_LIST_BASE 10
-
-char *program_basename = NULL;
 
 static const struct option long_options[] = {
   {"count",           required_argument, NULL, 'c'},
@@ -95,11 +100,26 @@ static void usage_short(void) {
 
 int main(int argc, char **argv) {
   program_basename = basename(argv[0]);
-  struct manager_arguments args;
+  struct rxtx_args args;
   memset(&args, 0, sizeof(args));
 
-  args.program_fullname = argv[0];
-  args.program_basename = program_basename;
+  /*
+   * Per packet(7), "PACKET_FANOUT_CPU selects the socket based on the CPU that
+   * the packet arrived on."
+   *
+   * The implementation in fanout_demux_cpu() (net/packet/af_packet.c) is a
+   * simple modulo operaton.
+   *
+   *   smp_processor_id() % num;
+   *
+   * num is the number of sockets in the fanout group. The sockets are indexed
+   * in the same order as they were added to the fanout group. So, we simply
+   * need one socket per processor added to the fanout group in processor id
+   * order.
+   *
+   * rxtx_open() will handle the ordering, we just need to set the fanout mode.
+   */
+  args.fanout_mode = PACKET_FANOUT_CPU;
 
   /*
    * capture_rx and capture_tx defaults are based on the invocation.
@@ -161,7 +181,7 @@ int main(int argc, char **argv) {
 
       case 'l':
         cpu_list = optarg;
-        if (parse_cpu_list(optarg, &(args.capture_cpu_set))) {
+        if (parse_cpu_list(optarg, &(args.ring_set))) {
           fprintf(stderr, "%s: Invalid cpu list '%s'.\n", program_basename, optarg);
           usage_short();
           return EXIT_FAIL_OPTION;
@@ -170,7 +190,7 @@ int main(int argc, char **argv) {
 
       case 'm':
         cpu_mask = optarg;
-        if (parse_cpu_mask(optarg, &(args.capture_cpu_set))) {
+        if (parse_cpu_mask(optarg, &(args.ring_set))) {
           fprintf(stderr, "%s: Invalid cpu mask '%s'.\n", program_basename, optarg);
           usage_short();
           return EXIT_FAIL_OPTION;
@@ -263,25 +283,25 @@ int main(int argc, char **argv) {
   /*
    * We need to know how many processors are configured.
    */
-  args.processor_count = sysconf(_SC_NPROCESSORS_CONF);
-  if (args.processor_count <= 0) {
+  args.ring_count = sysconf(_SC_NPROCESSORS_CONF);
+  if (args.ring_count <= 0) {
     fprintf(stderr, "%s: Failed to get processor count.\n", program_basename);
     return EXIT_FAIL;
   }
 
   if (args.verbose) {
-    fprintf(stderr, "Found '%d' processors.\n", args.processor_count);
+    fprintf(stderr, "Found '%d' processors.\n", args.ring_count);
   }
 
-  if (CPU_COUNT(&(args.capture_cpu_set)) == 0) {
-    for (int i = 0; i < args.processor_count; i++) {
-      CPU_SET(i, &(args.capture_cpu_set));
+  if (CPU_COUNT(&(args.ring_set)) == 0) {
+    for (int i = 0; i < args.ring_count; i++) {
+      CPU_SET(i, &(args.ring_set));
     }
   }
 
   int worker_count = 0;
-  for (int i = 0; i < args.processor_count; i++) {
-    if (CPU_ISSET(i, &(args.capture_cpu_set))) {
+  for (int i = 0; i < args.ring_count; i++) {
+    if (CPU_ISSET(i, &(args.ring_set))) {
       worker_count++;
     }
   }
@@ -302,10 +322,10 @@ int main(int argc, char **argv) {
     return EXIT_FAIL_OPTION;
   }
 
-  if (CPU_COUNT(&online_cpu_set) != args.processor_count) {
-    for (int i = 0; i < args.processor_count; i++) {
+  if (CPU_COUNT(&online_cpu_set) != args.ring_count) {
+    for (int i = 0; i < args.ring_count; i++) {
       if (!CPU_ISSET(i, &online_cpu_set)) {
-        CPU_CLR(i, &(args.capture_cpu_set));
+        CPU_CLR(i, &(args.ring_set));
         if (args.verbose) {
           fprintf(stderr, "Skipping cpu '%d' since it is offline.\n", i);
         }
@@ -314,8 +334,8 @@ int main(int argc, char **argv) {
   }
 
   worker_count = 0;
-  for (int i = 0; i < args.processor_count; i++) {
-    if (CPU_ISSET(i, &(args.capture_cpu_set))) {
+  for (int i = 0; i < args.ring_count; i++) {
+    if (CPU_ISSET(i, &(args.ring_set))) {
       worker_count++;
     }
   }
@@ -332,7 +352,7 @@ int main(int argc, char **argv) {
 
   if (args.pcap_filename &&
       strcmp(args.pcap_filename, "-") == 0 &&
-      CPU_COUNT(&(args.capture_cpu_set)) != 1) {
+      CPU_COUNT(&(args.ring_set)) != 1) {
     fprintf(
       stderr,
       "%s: Write file '%s' (stdout) is only permitted when capturing on a single cpu.\n",
@@ -355,15 +375,65 @@ int main(int argc, char **argv) {
     return EXIT_FAIL_OPTION;
   }
 
-  if (optind == argc) {
-    args.ifname = NULL;
-  } else {
+  if (optind != argc) {
     args.ifname = argv[optind];
   }
 
-  if (manager(&args) == -1) {
-    return EXIT_FAIL;
+  struct rxtx_desc rtd;
+  rxtx_open(&rtd, &args);
+
+  /*
+   * Setup our signal handlers before spinning up threads.
+   */
+  setup_signals();
+
+  /*
+   * This loop spins up our threads. Each thread is affine to a single
+   * processor and is passed the ring containing the socket fd which will
+   * receive packets for that processor.
+   */
+  cpu_set_t cpu_set;
+  pthread_t threads[args.ring_count];
+  pthread_attr_t attr;
+  pthread_attr_init(&attr);
+
+  for (int i = 0; i < args.ring_count; i++) {
+    if (!CPU_ISSET(i, &(args.ring_set))) {
+      continue;
+    }
+    CPU_ZERO(&cpu_set);
+    CPU_SET(i, &cpu_set);
+    pthread_attr_setaffinity_np(&attr, sizeof(cpu_set), &cpu_set);
+    pthread_create(&threads[i], &attr, rxtx_loop, (void *)&(rtd.rings[i]));
   }
+
+  /*
+   * This loop joins our threads and prints the per-ring, in this case per-cpu,
+   * results.
+   */
+  FILE *out = stdout;
+  if (args.pcap_filename &&
+      strcmp(args.pcap_filename, "-") == 0) {
+    out = stderr;
+  }
+  for (int i = 0; i < args.ring_count; i++) {
+    if (!CPU_ISSET(i, &(args.ring_set))) {
+      continue;
+    }
+    pthread_join(threads[i], NULL);
+    fprintf(
+      out,
+      "%ju packets captured on cpu%d.\n",
+      rtd.rings[i].stats->packets_received,
+      i
+    );
+  }
+
+  pthread_attr_destroy(&attr);
+
+  fprintf(out, "%ju packets captured total.\n", rtd.stats->packets_received);
+
+  rxtx_close(&rtd);
 
   return EXIT_OK;
 }

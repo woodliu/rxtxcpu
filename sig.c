@@ -10,6 +10,8 @@
 
 #include "sig.h"
 
+#include "rxtx.h" // for program_basename
+
 #include <signal.h> // for sigaction, sigaction(), SIGINT, sigfillset()
 #include <stdio.h>  // for fprintf()
 #include <unistd.h> // for STDERR_FILENO, write()
