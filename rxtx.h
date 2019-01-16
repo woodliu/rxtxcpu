@@ -21,6 +21,12 @@
 
 extern char *program_basename;
 
+struct rxtx_args;
+struct rxtx_desc;
+struct rxtx_pcap;
+struct rxtx_ring;
+struct rxtx_stats;
+
 struct rxtx_args {
   bool      capture_rx;
   bool      capture_tx;
