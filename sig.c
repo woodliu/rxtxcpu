@@ -10,7 +10,7 @@
 
 #include "sig.h"
 
-#include <signal.h> // for sigaction, sigaction(), sigfillset()
+#include <signal.h> // for sigaction, sigaction(), SIGINT, sigfillset()
 #include <stdio.h>  // for fprintf()
 #include <unistd.h> // for STDERR_FILENO, write()
 
@@ -40,7 +40,11 @@ int setup_signals(void) {
   sigfillset(&sa.sa_mask);
 
   if (sigaction(SIGINT, &sa, NULL) == -1) {
-    fprintf(stderr, "%s: Failed to setup signal handler for SIGINT.\n", program_basename);
+    fprintf(
+      stderr,
+      "%s: Failed to setup signal handler for SIGINT.\n",
+      program_basename
+    );
     return -1;
   }
 
