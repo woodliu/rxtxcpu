@@ -263,7 +263,9 @@ int main(int argc, char **argv) {
           badopt = argv[optind-1];
         }
         fprintf(stderr, "%s: Unrecognized option '%s'.\n", program_basename, badopt);
-        free(badopt);
+        if (optopt) {
+          free(badopt);
+        }
         usage_short();
         return EXIT_FAIL_OPTION;
     }

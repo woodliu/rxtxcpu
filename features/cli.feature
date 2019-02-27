@@ -56,6 +56,13 @@ Feature: Cli
     And the stderr should contain "rxtxcpu: Unrecognized option '-z'."
     And the stderr should contain "Usage: rxtxcpu [--help]"
 
+  Scenario: unrecognized long argument
+    When I run `./rxtxcpu --zzz`
+    Then the exit status should be 2
+    And the stdout should not contain anything
+    And the stderr should contain "rxtxcpu: Unrecognized option '--zzz'."
+    And the stderr should contain "Usage: rxtxcpu [--help]"
+
   Scenario: cpu list and cpu mask
     When I run `./rxtxcpu -l0 -m1`
     Then the exit status should be 2
