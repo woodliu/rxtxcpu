@@ -7,4 +7,5 @@ apt-get update
 apt-get install -y \
   gcc \
   libpcap-dev \
-  make
+  make \
+  tcpdump

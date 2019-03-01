@@ -8,4 +8,5 @@ rpm --import \
 yum install -y \
   gcc \
   libpcap-devel \
-  make
+  make \
+  tcpdump
