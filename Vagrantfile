@@ -6,7 +6,7 @@ Vagrant.configure("2") do |config|
       v.memory = 4096
       v.cpus = 2
     end
-    _self.vm.provision "shell", path: "provisioner.sh"
+    _self.vm.provision "shell", path: "provisioners/centos/requires.sh"
     _self.vm.synced_folder ".", "/vagrant", type: "virtualbox"
   end
 
@@ -16,7 +16,7 @@ Vagrant.configure("2") do |config|
       v.memory = 4096
       v.cpus = 2
     end
-    _self.vm.provision "shell", path: "provisioner.sh"
+    _self.vm.provision "shell", path: "provisioners/ubuntu/requires.sh"
     _self.vm.synced_folder ".", "/vagrant", type: "rsync"
     _self.vbguest.auto_update = false
   end
@@ -27,7 +27,7 @@ Vagrant.configure("2") do |config|
       v.memory = 4096
       v.cpus = 2
     end
-    _self.vm.provision "shell", path: "provisioner.sh"
+    _self.vm.provision "shell", path: "provisioners/ubuntu/requires.sh"
     _self.vm.synced_folder ".", "/vagrant", type: "rsync"
     _self.vbguest.auto_update = false
   end
@@ -38,7 +38,7 @@ Vagrant.configure("2") do |config|
       v.memory = 4096
       v.cpus = 2
     end
-    _self.vm.provision "shell", path: "provisioner.sh"
+    _self.vm.provision "shell", path: "provisioners/ubuntu/requires.sh"
     _self.vm.synced_folder ".", "/vagrant", type: "rsync"
     _self.vbguest.auto_update = false
   end
