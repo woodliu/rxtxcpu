@@ -9,6 +9,7 @@ Vagrant.configure("2") do |config|
     _self.vm.provision "shell", path: "provisioners/centos/requires.sh"
     _self.vm.provision "shell", path: "provisioners/centos/kernel-ml.sh"
     _self.vm.provision :reload
+    _self.vm.provision "shell", path: "provisioners/netmap.sh"
     _self.vm.synced_folder ".", "/vagrant", type: "rsync"
     _self.vbguest.auto_update = false
   end
@@ -20,6 +21,7 @@ Vagrant.configure("2") do |config|
       v.cpus = 2
     end
     _self.vm.provision "shell", path: "provisioners/centos/requires.sh"
+    _self.vm.provision "shell", path: "provisioners/netmap.sh"
     _self.vm.synced_folder ".", "/vagrant", type: "virtualbox"
   end
 
@@ -30,6 +32,7 @@ Vagrant.configure("2") do |config|
       v.cpus = 2
     end
     _self.vm.provision "shell", path: "provisioners/ubuntu/requires.sh"
+    _self.vm.provision "shell", path: "provisioners/netmap.sh"
     _self.vm.synced_folder ".", "/vagrant", type: "rsync"
     _self.vbguest.auto_update = false
   end
@@ -41,6 +44,7 @@ Vagrant.configure("2") do |config|
       v.cpus = 2
     end
     _self.vm.provision "shell", path: "provisioners/ubuntu/requires.sh"
+    _self.vm.provision "shell", path: "provisioners/netmap.sh"
     _self.vm.synced_folder ".", "/vagrant", type: "rsync"
     _self.vbguest.auto_update = false
   end
@@ -52,6 +56,7 @@ Vagrant.configure("2") do |config|
       v.cpus = 2
     end
     _self.vm.provision "shell", path: "provisioners/ubuntu/requires.sh"
+    _self.vm.provision "shell", path: "provisioners/netmap.sh"
     _self.vm.synced_folder ".", "/vagrant", type: "rsync"
     _self.vbguest.auto_update = false
   end
