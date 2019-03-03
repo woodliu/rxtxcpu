@@ -1,7 +1,7 @@
 #!/bin/bash
 
 [[ -z ${RUNNER_VAGRANT_MACHINE+x} ]] &&
-  RUNNER_VAGRANT_MACHINE="seven"
+  RUNNER_VAGRANT_MACHINE="seven-ml"
 
 do_rsync=0
 vagrant status "$RUNNER_VAGRANT_MACHINE" | grep -q "${RUNNER_VAGRANT_MACHINE} *running" &&

@@ -1,6 +1,6 @@
 Vagrant.configure("2") do |config|
 
-  config.vm.define "seven-ml", autostart: false do |_self|
+  config.vm.define "seven-ml", primary: true do |_self|
     _self.vm.box = "centos/7"
     _self.vm.provider "virtualbox" do |v|
       v.memory = 4096
@@ -14,7 +14,7 @@ Vagrant.configure("2") do |config|
     _self.vbguest.auto_update = false
   end
 
-  config.vm.define "seven", primary: true do |_self|
+  config.vm.define "seven", autostart: false do |_self|
     _self.vm.box = "centos/7"
     _self.vm.provider "virtualbox" do |v|
       v.memory = 4096
