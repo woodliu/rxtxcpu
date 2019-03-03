@@ -10,6 +10,7 @@ Vagrant.configure("2") do |config|
     _self.vm.provision "shell", path: "provisioners/centos/kernel-ml.sh"
     _self.vm.provision :reload
     _self.vm.provision "shell", path: "provisioners/netmap.sh"
+    _self.vm.provision "shell", path: "provisioners/centos/kernel-ml-rebuild-tun.sh"
     _self.vm.synced_folder ".", "/vagrant", type: "rsync"
     _self.vbguest.auto_update = false
   end
