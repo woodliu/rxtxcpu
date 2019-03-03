@@ -22,7 +22,8 @@ Vagrant.configure("2") do |config|
     end
     _self.vm.provision "shell", path: "provisioners/centos/requires.sh"
     _self.vm.provision "shell", path: "provisioners/netmap.sh"
-    _self.vm.synced_folder ".", "/vagrant", type: "virtualbox"
+    _self.vm.synced_folder ".", "/vagrant", type: "rsync"
+    _self.vbguest.auto_update = false
   end
 
   config.vm.define "trusty", autostart: false do |_self|
