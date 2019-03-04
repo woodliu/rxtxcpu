@@ -4,18 +4,6 @@ set -e
 
 . <(grep '^ID=' /etc/os-release | sed 's/^/OS_RELEASE_/')
 
-command -v tcpdump >/dev/null 2>&1 || {
-  [[ $OS_RELEASE_ID == "centos" ]] && {
-    sudo yum install -y \
-      tcpdump
-  }
-
-  [[ $OS_RELEASE_ID == "ubuntu" ]] && {
-    sudo apt-get install -y \
-      tcpdump
-  }
-}
-
 rvm --version 2>/dev/null || {
   gpg --keyserver hkp://keys.gnupg.net \
       --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 \
