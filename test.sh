@@ -2,8 +2,6 @@
 
 set -e
 
-. <(grep '^ID=' /etc/os-release | sed 's/^/OS_RELEASE_/')
-
 rvm --version 2>/dev/null || {
   gpg --keyserver hkp://keys.gnupg.net \
       --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 \
@@ -25,7 +23,9 @@ rvm list strings | grep -q "^ruby-${ruby_version}\$" || {
 gem install --conservative bundler
 
 bundle install
-[[ $OS_RELEASE_ID == "centos" ]] &&
-  bundle exec cucumber --tags 'not @ExcludeFromCentOS'
-[[ $OS_RELEASE_ID == "ubuntu" ]] &&
-  bundle exec cucumber --tags 'not @ExcludeFromUbuntu'
+
+cucumber_tags='not @Null'
+grep -q '^CONFIG_BOOTPARAM_HOTPLUG_CPU0=y$' "/boot/config-`uname -r`" ||
+  cucumber_tags='not @RequireHotplugCpu0'
+
+bundle exec cucumber --tags "$cucumber_tags"
