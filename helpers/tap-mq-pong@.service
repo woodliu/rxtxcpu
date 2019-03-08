@@ -1,0 +1,26 @@
+[Unit]
+Description=tap multiqueue ping handler on %I
+After=network.target
+
+[Service]
+Type=simple
+
+EnvironmentFile=-/etc/sysconfig/tap-mq-pong/%I
+
+ExecStartPre=-/usr/sbin/tap-mq-destroy %I
+ExecStartPre=/usr/sbin/tap-mq-init %I \
+  $LOCAL_HWADDR \
+  $REMOTE_HWADDR \
+  $LOCAL_IPADDR \
+  $REMOTE_IPADDR
+
+ExecStart=/usr/bin/tap-mq-pong %I
+
+ExecStartPost=/usr/sbin/tap-mq-configure-packet-steering %I
+
+ExecStopPost=-/usr/sbin/tap-mq-destroy %I
+
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

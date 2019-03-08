@@ -33,6 +33,7 @@
 rxcpu
 rxtxcpu
 txcpu
+/helpers/tap-mq-pong
 
 # Debug files
 *.dSYM/
