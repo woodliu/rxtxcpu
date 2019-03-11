@@ -9,7 +9,8 @@ rpm --import \
   /etc/pki/rpm-gpg/RPM-GPG-KEY-elrepo.org
 
 yum install -y --enablerepo=elrepo-kernel \
-  kernel-ml
+  kernel-ml \
+  kernel-ml-devel
 
 yum swap -y --enablerepo=elrepo-kernel \
   kernel-headers -- kernel-ml-headers

@@ -4,8 +4,8 @@ Feature: offline cpu
   not available on ubuntu. `/sys/devices/system/node/node*/cpu*/online` is
   available in all our current test environments. We'll use that.
 
-  cpu0 is not hot pluggable in ubuntu, so certain tests are marked with the
-  ExlcudeFromUbuntu tag.
+  cpu0 is not hot pluggable in some of our environments, so certain tests are
+  marked with the RequireHotplugCpu0 tag.
 
   Scenario: Packets sent on cpu0 are counted as such when cpu1 is offline
     Given I wait 2 seconds for a command to start up
@@ -21,7 +21,7 @@ Feature: offline cpu
     # The following is equivalent to `sudo chcpu -e 1`
     And I run `bash -c 'echo 1 | sudo tee /sys/devices/system/node/node0/cpu1/online'`
 
-  @ExcludeFromUbuntu
+  @RequireHotplugCpu0
   Scenario: Packets sent on cpu1 are counted as such when cpu0 is offline
     Given I wait 2 seconds for a command to start up
     # The following is equivalent to `sudo chcpu -d 0`
@@ -51,7 +51,7 @@ Feature: offline cpu
     12 packets captured total.
     """
 
-  @ExcludeFromUbuntu
+  @RequireHotplugCpu0
   Scenario: Packets sent on cpu1 are counted as such when cpu0 is offline and flipped online
     Given I wait 2 seconds for a command to start up
     # The following is equivalent to `sudo chcpu -d 0`
@@ -67,7 +67,7 @@ Feature: offline cpu
     12 packets captured total.
     """
 
-  @ExcludeFromUbuntu
+  @RequireHotplugCpu0
   Scenario: Packets sent on cpu0 are counted as such when processed before cpu0 is flipped offline
     Given I wait 2 seconds for a command to start up
     When I run `sudo timeout -s INT 10 ../../rxtxcpu lo` in background

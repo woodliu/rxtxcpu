@@ -7,6 +7,8 @@ rpm --import \
 
 yum install -y \
   gcc \
+  git \
+  "kernel-devel-uname-r == `uname -r`" \
   libpcap-devel \
   make \
   tcpdump

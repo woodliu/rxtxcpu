@@ -1,0 +1,11 @@
+# The mac addr applied to the local tap device.
+LOCAL_HWADDR=ee:ee:ee:ee:ee:ee
+
+# The ip addr applied to the local tap device.
+LOCAL_IPADDR=169.254.254.2/24
+
+# The mac addr applied "across" the wire.
+REMOTE_HWADDR=ee:ee:ee:c0:ff:ee
+
+# The ip addr applied "across" the wire.
+REMOTE_IPADDR=169.254.254.1/24

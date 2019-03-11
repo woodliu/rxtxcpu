@@ -1,13 +1,11 @@
 #!/bin/bash
 
 [[ -z ${RUNNER_VAGRANT_MACHINE+x} ]] &&
-  RUNNER_VAGRANT_MACHINE="seven"
+  RUNNER_VAGRANT_MACHINE="seven-ml"
 
 do_rsync=0
-if echo "$RUNNER_VAGRANT_MACHINE" | grep -q '^trusty$\|^xenial$\|^bionic$'; then
-  vagrant status "$RUNNER_VAGRANT_MACHINE" | grep -q "${RUNNER_VAGRANT_MACHINE}.*running" &&
-    do_rsync=1
-fi
+vagrant status "$RUNNER_VAGRANT_MACHINE" | grep -q "${RUNNER_VAGRANT_MACHINE} *running" &&
+  do_rsync=1
 
 vagrant up "$RUNNER_VAGRANT_MACHINE"
 ((do_rsync)) && vagrant rsync "$RUNNER_VAGRANT_MACHINE"
