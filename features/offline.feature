@@ -3,6 +3,10 @@ Feature: offline cpu
   cpu0 is not hot pluggable in some of our environments, so certain tests are
   marked with the RequireHotplugCpu0 tag.
 
+  Background: Enable cpus before each test in this file
+    Given I enable cpu 0
+    And I enable cpu 1
+
   Scenario: Packets sent on cpu0 are counted as such when cpu1 is offline
     Given I wait 0.2 seconds for a command to start up
     And I disable cpu 1
@@ -13,7 +17,6 @@ Feature: offline cpu
     12 packets captured on cpu0.
     12 packets captured total.
     """
-    And I enable cpu 1
 
   @RequireHotplugCpu0
   Scenario: Packets sent on cpu1 are counted as such when cpu0 is offline
@@ -26,7 +29,6 @@ Feature: offline cpu
     12 packets captured on cpu1.
     12 packets captured total.
     """
-    And I enable cpu 0
 
   Scenario: Packets sent on cpu0 are counted as such when cpu1 is offline and flipped online
     Given I wait 0.2 seconds for a command to start up
@@ -69,7 +71,6 @@ Feature: offline cpu
     8 packets captured on cpu1.
     20 packets captured total.
     """
-    And I enable cpu 0
 
   Scenario: Packets sent on cpu1 are counted as such when processed before cpu1 is flipped offline
     Given I wait 0.2 seconds for a command to start up
@@ -84,4 +85,7 @@ Feature: offline cpu
     12 packets captured on cpu1.
     20 packets captured total.
     """
+
+  Scenario: Enable cpus after all tests in this file
+    Given I enable cpu 0
     And I enable cpu 1

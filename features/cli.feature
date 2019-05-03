@@ -1,4 +1,4 @@
-Feature: Cli
+Feature: cli
 
   Scenario: invalid count
     When I run `./rxtxcpu -c 10j`
@@ -83,24 +83,6 @@ Feature: Cli
     And the stdout should not contain anything
     And the stderr should contain "rxtxcpu: No configured cpus present in cpu mask."
     And the stderr should contain "Usage: rxtxcpu [--help]"
-
-  Scenario: cpu list with no online cpus
-    Given I disable cpu 1
-    When I run `./rxtxcpu -l1`
-    Then the exit status should be 2
-    And the stdout should not contain anything
-    And the stderr should contain "rxtxcpu: No online cpus present in cpu list."
-    And the stderr should contain "Usage: rxtxcpu [--help]"
-    And I enable cpu 1
-
-  Scenario: cpu mask with no online cpus
-    Given I disable cpu 1
-    When I run `./rxtxcpu -m2`
-    Then the exit status should be 2
-    And the stdout should not contain anything
-    And the stderr should contain "rxtxcpu: No online cpus present in cpu mask."
-    And the stderr should contain "Usage: rxtxcpu [--help]"
-    And I enable cpu 1
 
   Scenario: more than one interface
     When I run `./rxtxcpu lo lo2`
