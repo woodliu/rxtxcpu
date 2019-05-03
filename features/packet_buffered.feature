@@ -4,7 +4,7 @@ Feature: `--packet-buffered`
   after each packet.
 
   Scenario: With `--packet-buffered`
-    Given I wait 2 seconds for a command to start up
+    Given I wait 0.2 seconds for a command to start up
     When I run `sudo timeout -s INT 5 ../../rxtxcpu -w out.pcap --packet-buffered lo` in background
     And I run `taskset -c 0 ping -c3 localhost`
     And I run `tcpdump -r out-0.pcap`
@@ -19,7 +19,7 @@ Feature: `--packet-buffered`
     And the output from "tcpdump -r out-1.pcap" should not contain "IP localhost > localhost: ICMP echo request"
 
   Scenario: With `-U`
-    Given I wait 2 seconds for a command to start up
+    Given I wait 0.2 seconds for a command to start up
     When I run `sudo timeout -s INT 5 ../../rxtxcpu -w out.pcap -U lo` in background
     And I run `taskset -c 0 ping -c3 localhost`
     And I run `tcpdump -r out-0.pcap`
@@ -34,7 +34,7 @@ Feature: `--packet-buffered`
     And the output from "tcpdump -r out-1.pcap" should not contain "IP localhost > localhost: ICMP echo request"
 
   Scenario: Without `--packet-buffered`
-    Given I wait 2 seconds for a command to start up
+    Given I wait 0.2 seconds for a command to start up
     When I run `sudo timeout -s INT 5 ../../rxtxcpu -w out.pcap lo` in background
     And I run `taskset -c 0 ping -c3 localhost`
     And I run `tcpdump -r out-0.pcap`

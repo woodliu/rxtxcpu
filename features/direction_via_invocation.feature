@@ -4,7 +4,7 @@ Feature: direction via invocation
   takes precedence over the invocation method.
 
   Scenario: Invocation `rxcpu`
-    Given I wait 2 seconds for a command to start up
+    Given I wait 0.2 seconds for a command to start up
     When I run `sudo timeout -s INT 5 ../../rxcpu lo` in background
     And I run `taskset -c 0 ping -c3 localhost`
     Then the output from "sudo timeout -s INT 5 ../../rxcpu lo" should contain exactly:
@@ -15,7 +15,7 @@ Feature: direction via invocation
     """
 
   Scenario: Invocation `txcpu`
-    Given I wait 2 seconds for a command to start up
+    Given I wait 0.2 seconds for a command to start up
     When I run `sudo timeout -s INT 5 ../../txcpu lo` in background
     And I run `taskset -c 0 ping -c3 localhost`
     Then the output from "sudo timeout -s INT 5 ../../txcpu lo" should contain exactly:
@@ -26,7 +26,7 @@ Feature: direction via invocation
     """
 
   Scenario: Invocation `rxcpu` with `--direction=rxtx`
-    Given I wait 2 seconds for a command to start up
+    Given I wait 0.2 seconds for a command to start up
     When I run `sudo timeout -s INT 5 ../../rxcpu --direction rxtx lo` in background
     And I run `taskset -c 0 ping -c3 localhost`
     Then the output from "sudo timeout -s INT 5 ../../rxcpu --direction rxtx lo" should contain exactly:
@@ -37,7 +37,7 @@ Feature: direction via invocation
     """
 
   Scenario: Invocation `txcpu` with `--direction=rxtx`
-    Given I wait 2 seconds for a command to start up
+    Given I wait 0.2 seconds for a command to start up
     When I run `sudo timeout -s INT 5 ../../txcpu --direction rxtx lo` in background
     And I run `taskset -c 0 ping -c3 localhost`
     Then the output from "sudo timeout -s INT 5 ../../txcpu --direction rxtx lo" should contain exactly:

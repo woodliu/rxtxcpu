@@ -4,7 +4,7 @@ Feature: offline cpu
   marked with the RequireHotplugCpu0 tag.
 
   Scenario: Packets sent on cpu0 are counted as such when cpu1 is offline
-    Given I wait 2 seconds for a command to start up
+    Given I wait 0.2 seconds for a command to start up
     And I disable cpu 1
     When I run `sudo timeout -s INT 5 ../../rxtxcpu lo` in background
     And I run `taskset -c 0 ping -c3 localhost`
@@ -17,7 +17,7 @@ Feature: offline cpu
 
   @RequireHotplugCpu0
   Scenario: Packets sent on cpu1 are counted as such when cpu0 is offline
-    Given I wait 2 seconds for a command to start up
+    Given I wait 0.2 seconds for a command to start up
     And I disable cpu 0
     When I run `sudo timeout -s INT 5 ../../rxtxcpu lo` in background
     And I run `taskset -c 1 ping -c3 localhost`
@@ -29,7 +29,7 @@ Feature: offline cpu
     And I enable cpu 0
 
   Scenario: Packets sent on cpu0 are counted as such when cpu1 is offline and flipped online
-    Given I wait 2 seconds for a command to start up
+    Given I wait 0.2 seconds for a command to start up
     And I disable cpu 1
     When I run `sudo timeout -s INT 10 ../../rxtxcpu lo` in background
     And I run `taskset -c 0 ping -c3 localhost` in background
@@ -43,7 +43,7 @@ Feature: offline cpu
 
   @RequireHotplugCpu0
   Scenario: Packets sent on cpu1 are counted as such when cpu0 is offline and flipped online
-    Given I wait 2 seconds for a command to start up
+    Given I wait 0.2 seconds for a command to start up
     And I disable cpu 0
     When I run `sudo timeout -s INT 10 ../../rxtxcpu lo` in background
     And I run `taskset -c 1 ping -c3 localhost` in background
@@ -57,7 +57,7 @@ Feature: offline cpu
 
   @RequireHotplugCpu0
   Scenario: Packets sent on cpu0 are counted as such when processed before cpu0 is flipped offline
-    Given I wait 2 seconds for a command to start up
+    Given I wait 0.2 seconds for a command to start up
     When I run `sudo timeout -s INT 10 ../../rxtxcpu lo` in background
     And I run `taskset -c 1 ping -c1 localhost` in background
     And I run `taskset -c 0 ping -c3 localhost`
@@ -72,7 +72,7 @@ Feature: offline cpu
     And I enable cpu 0
 
   Scenario: Packets sent on cpu1 are counted as such when processed before cpu1 is flipped offline
-    Given I wait 2 seconds for a command to start up
+    Given I wait 0.2 seconds for a command to start up
     When I run `sudo timeout -s INT 10 ../../rxtxcpu lo` in background
     And I run `taskset -c 0 ping -c1 localhost` in background
     And I run `taskset -c 1 ping -c3 localhost`
