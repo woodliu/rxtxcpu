@@ -5,9 +5,9 @@ Feature: `--direction=DIRECTION`
 
   Scenario: With `--direction=rx`
     Given I wait 0.2 seconds for a command to start up
-    When I run `sudo timeout -s INT 5 ../../rxtxcpu --direction rx lo` in background
+    When I run `sudo timeout -s INT 2 ../../rxtxcpu --direction rx lo` in background
     And I run `ping -i0.2 -c3 localhost` on cpu 0
-    Then the output from "sudo timeout -s INT 5 ../../rxtxcpu --direction rx lo" should contain exactly:
+    Then the output from "sudo timeout -s INT 2 ../../rxtxcpu --direction rx lo" should contain exactly:
     """
     6 packets captured on cpu0.
     0 packets captured on cpu1.
@@ -16,9 +16,9 @@ Feature: `--direction=DIRECTION`
 
   Scenario: With `-d rx`
     Given I wait 0.2 seconds for a command to start up
-    When I run `sudo timeout -s INT 5 ../../rxtxcpu -d rx lo` in background
+    When I run `sudo timeout -s INT 2 ../../rxtxcpu -d rx lo` in background
     And I run `ping -i0.2 -c3 localhost` on cpu 0
-    Then the output from "sudo timeout -s INT 5 ../../rxtxcpu -d rx lo" should contain exactly:
+    Then the output from "sudo timeout -s INT 2 ../../rxtxcpu -d rx lo" should contain exactly:
     """
     6 packets captured on cpu0.
     0 packets captured on cpu1.
@@ -27,9 +27,9 @@ Feature: `--direction=DIRECTION`
 
   Scenario: With `--direction=tx`
     Given I wait 0.2 seconds for a command to start up
-    When I run `sudo timeout -s INT 5 ../../rxtxcpu --direction tx lo` in background
+    When I run `sudo timeout -s INT 2 ../../rxtxcpu --direction tx lo` in background
     And I run `ping -i0.2 -c3 localhost` on cpu 0
-    Then the output from "sudo timeout -s INT 5 ../../rxtxcpu --direction tx lo" should contain exactly:
+    Then the output from "sudo timeout -s INT 2 ../../rxtxcpu --direction tx lo" should contain exactly:
     """
     6 packets captured on cpu0.
     0 packets captured on cpu1.
@@ -38,9 +38,9 @@ Feature: `--direction=DIRECTION`
 
   Scenario: With `--direction=rxtx`
     Given I wait 0.2 seconds for a command to start up
-    When I run `sudo timeout -s INT 5 ../../rxtxcpu --direction rxtx lo` in background
+    When I run `sudo timeout -s INT 2 ../../rxtxcpu --direction rxtx lo` in background
     And I run `ping -i0.2 -c3 localhost` on cpu 0
-    Then the output from "sudo timeout -s INT 5 ../../rxtxcpu --direction rxtx lo" should contain exactly:
+    Then the output from "sudo timeout -s INT 2 ../../rxtxcpu --direction rxtx lo" should contain exactly:
     """
     12 packets captured on cpu0.
     0 packets captured on cpu1.
@@ -49,9 +49,9 @@ Feature: `--direction=DIRECTION`
 
   Scenario: Without `--direction`
     Given I wait 0.2 seconds for a command to start up
-    When I run `sudo timeout -s INT 5 ../../rxtxcpu lo` in background
+    When I run `sudo timeout -s INT 2 ../../rxtxcpu lo` in background
     And I run `ping -i0.2 -c3 localhost` on cpu 0
-    Then the output from "sudo timeout -s INT 5 ../../rxtxcpu lo" should contain exactly:
+    Then the output from "sudo timeout -s INT 2 ../../rxtxcpu lo" should contain exactly:
     """
     12 packets captured on cpu0.
     0 packets captured on cpu1.
