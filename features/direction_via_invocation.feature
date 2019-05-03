@@ -6,7 +6,7 @@ Feature: direction via invocation
   Scenario: Invocation `rxcpu`
     Given I wait 0.2 seconds for a command to start up
     When I run `sudo timeout -s INT 5 ../../rxcpu lo` in background
-    And I run `taskset -c 0 ping -c3 localhost`
+    And I run `ping -c3 localhost` on cpu 0
     Then the output from "sudo timeout -s INT 5 ../../rxcpu lo" should contain exactly:
     """
     6 packets captured on cpu0.
@@ -17,7 +17,7 @@ Feature: direction via invocation
   Scenario: Invocation `txcpu`
     Given I wait 0.2 seconds for a command to start up
     When I run `sudo timeout -s INT 5 ../../txcpu lo` in background
-    And I run `taskset -c 0 ping -c3 localhost`
+    And I run `ping -c3 localhost` on cpu 0
     Then the output from "sudo timeout -s INT 5 ../../txcpu lo" should contain exactly:
     """
     6 packets captured on cpu0.
@@ -28,7 +28,7 @@ Feature: direction via invocation
   Scenario: Invocation `rxcpu` with `--direction=rxtx`
     Given I wait 0.2 seconds for a command to start up
     When I run `sudo timeout -s INT 5 ../../rxcpu --direction rxtx lo` in background
-    And I run `taskset -c 0 ping -c3 localhost`
+    And I run `ping -c3 localhost` on cpu 0
     Then the output from "sudo timeout -s INT 5 ../../rxcpu --direction rxtx lo" should contain exactly:
     """
     12 packets captured on cpu0.
@@ -39,7 +39,7 @@ Feature: direction via invocation
   Scenario: Invocation `txcpu` with `--direction=rxtx`
     Given I wait 0.2 seconds for a command to start up
     When I run `sudo timeout -s INT 5 ../../txcpu --direction rxtx lo` in background
-    And I run `taskset -c 0 ping -c3 localhost`
+    And I run `ping -c3 localhost` on cpu 0
     Then the output from "sudo timeout -s INT 5 ../../txcpu --direction rxtx lo" should contain exactly:
     """
     12 packets captured on cpu0.

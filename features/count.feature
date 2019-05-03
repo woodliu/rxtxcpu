@@ -12,7 +12,7 @@ Feature: `--count=N` option
 
   Scenario: With `--count=6`
     When I run `sudo ../../rxtxcpu --count 6 lo` in background
-    And I run `taskset -c 0 ping -c3 localhost`
+    And I run `ping -c3 localhost` on cpu 0
     Then the output from "sudo ../../rxtxcpu --count 6 lo" should contain exactly:
     """
     6 packets captured on cpu0.
@@ -22,7 +22,7 @@ Feature: `--count=N` option
 
   Scenario: With `-c6`
     When I run `sudo ../../rxtxcpu -c6 lo` in background
-    And I run `taskset -c 0 ping -c3 localhost`
+    And I run `ping -c3 localhost` on cpu 0
     Then the output from "sudo ../../rxtxcpu -c6 lo" should contain exactly:
     """
     6 packets captured on cpu0.
@@ -33,7 +33,7 @@ Feature: `--count=N` option
   Scenario: With `--count=0`
     Given I wait 0.2 seconds for a command to start up
     When I run `sudo timeout -s INT 5 ../../rxtxcpu --count=0 lo` in background
-    And I run `taskset -c 0 ping -c3 localhost`
+    And I run `ping -c3 localhost` on cpu 0
     Then the output from "sudo timeout -s INT 5 ../../rxtxcpu --count=0 lo" should contain exactly:
     """
     12 packets captured on cpu0.
@@ -44,7 +44,7 @@ Feature: `--count=N` option
   Scenario: Without `--count`
     Given I wait 0.2 seconds for a command to start up
     When I run `sudo timeout -s INT 5 ../../rxtxcpu lo` in background
-    And I run `taskset -c 0 ping -c3 localhost`
+    And I run `ping -c3 localhost` on cpu 0
     Then the output from "sudo timeout -s INT 5 ../../rxtxcpu lo" should contain exactly:
     """
     12 packets captured on cpu0.
