@@ -144,6 +144,15 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
   }
 
   /*
+   * We need an id to add socket fds to our fanout group.
+   */
+  p->fanout_group_id = getpid() & 0xffff;
+
+  if (args->verbose) {
+    fprintf(stderr, "Generated fanout group id '%d'.\n", p->fanout_group_id);
+  }
+
+  /*
    * This loop creates our rings, including per-ring socket fds and pcap
    * filenames. We need the instantiation order to follow ring index order.
    *
@@ -152,15 +161,6 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
    */
   for (int i = 0; i < args->ring_count; i++) {
     rxtx_ring_init(&(p->rings[i]), p, i);
-  }
-
-  /*
-   * We need an id to add socket fds to our fanout group.
-   */
-  p->fanout_group_id = getpid() & 0xffff;
-
-  if (args->verbose) {
-    fprintf(stderr, "Generated fanout group id '%d'.\n", p->fanout_group_id);
   }
 }
 
