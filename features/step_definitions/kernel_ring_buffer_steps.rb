@@ -1,7 +1,6 @@
 Given /^I mark the kernel ring buffer with "(.*?)"$/ do |mark|
   cmd = %Q{sudo bash -c 'echo "#{mark}" >> /dev/kmsg'}
-  fail_on_error = true
-  run_simple(sanitize_text(cmd), fail_on_error)
+  run_command_and_stop(sanitize_text(cmd), fail_on_error: true)
 end
 
 Then("the last {int} lines in the kernel ring buffer should contain exactly:") do |int, string|

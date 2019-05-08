@@ -32,7 +32,7 @@ Feature: `--promiscuous` option
     And I mark the kernel ring buffer with "end of promiscuous test"
 
   Scenario: With `--promiscuous` with ifindex 0 (any interface)
-    Given I wait 2 seconds for a command to start up
+    Given I wait 0.2 seconds for a command to start up
     And I mark the kernel ring buffer with "start of promiscuous test"
     When I run `sudo timeout -s INT 2 ../../rxtxcpu --promiscuous`
     Then the last 1 lines in the kernel ring buffer should contain exactly:
