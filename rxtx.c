@@ -18,13 +18,15 @@
 
 #include <arpa/inet.h>       // for htons()
 #include <linux/if_packet.h> // for PACKET_FANOUT, PACKET_OUTGOING,
-                             //     PACKET_RX_RING, PACKET_TX_RING,
-                             //     sockaddr_ll, tpacket_req
+                             //     PACKET_RX_RING, PACKET_STATISTICS,
+                             //     PACKET_TX_RING, sockaddr_ll, tpacket_req,
+                             //     tpacket_stats
 #include <net/ethernet.h>    // for ETH_P_ALL
 #include <net/if.h>          // for if_nametoindex()
-#include <sys/socket.h>      // for AF_PACKET, bind(), recvfrom(),
-                             //     setsockopt(), SO_RCVTIMEO, SOCK_RAW,
-                             //     sockaddr, socket(), SOL_PACKET, SOL_SOCKET
+#include <sys/socket.h>      // for AF_PACKET, bind(), getsockopt(),
+                             //     recvfrom(), setsockopt(), SO_RCVTIMEO,
+                             //     SOCK_RAW, sockaddr, socket(), socklen_t,
+                             //     SOL_PACKET, SOL_SOCKET
 #include <sys/time.h>        // for timeval
 
 #include <errno.h>    // for errno
@@ -162,6 +164,32 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
   for (int i = 0; i < args->ring_count; i++) {
     rxtx_ring_init(&(p->rings[i]), p, i);
   }
+
+  /*
+   * Any packets which were enqueued before all socket(), bind(), and
+   * setsockopt() operations were completed for our rings should be considered
+   * unreliable. These packets could be from another interface (due to being
+   * enqueued before bind() set the ifindex) or these packets could belong to
+   * another ring (due to being enqueued before all fds are added to our fanout
+   * group).
+   *
+   * Regardless of the reason for the packets being unreliable, we want to skip
+   * them and knowing their quantity is one way to do so.
+   */
+  for (int i = 0; i < args->ring_count; i++) {
+    struct tpacket_stats stats;
+    socklen_t len = sizeof(stats);
+    if (getsockopt(p->rings[i].fd, SOL_PACKET, PACKET_STATISTICS, &stats, &len) < 0 ) {
+      fprintf(
+        stderr,
+        "%s: Failed to get packet statistics: %s\n",
+        program_basename,
+        strerror(errno)
+      );
+      exit(EXIT_FAIL);
+    }
+    p->rings[i].unreliable_packet_count = stats.tp_packets - stats.tp_drops;
+  }
 }
 
 static void rxtx_desc_destroy(struct rxtx_desc *p) {
@@ -267,6 +295,7 @@ rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx) {
   rxtx_stats_init(p->stats);
   p->idx = ring_idx;
   p->fd = -1;
+  p->unreliable_packet_count = 0;
 
   if (rtd->args->fanout_mode != NO_PACKET_FANOUT) {
     /*
@@ -399,6 +428,7 @@ static void rxtx_ring_destroy(struct rxtx_ring *p) {
 
 static void rxtx_stats_init(struct rxtx_stats *p) {
   p->packets_received = 0;
+  p->packets_unreliable = 0;
   p->mutex = calloc(1, sizeof(*p->mutex));
   if (pthread_mutex_init(p->mutex, NULL) != 0) {
     fprintf(
@@ -450,6 +480,7 @@ void *rxtx_loop(void *r) {
     );
   }
 
+  int seen_empty_ring = 0;
   while (keep_running) {
 
     if (args->packet_count &&
@@ -471,6 +502,19 @@ void *rxtx_loop(void *r) {
     );
 
     if (packet_length == -1) {
+      seen_empty_ring = 1;
+      continue;
+    }
+
+    /*
+     * If we've seen the ring buffer go empty, we know all unreliable packets
+     * have been skipped. Alternatively, if we've directly processed all
+     * unreliable packets, we know all unreliable packets have been skipped.
+     * Otherwise, this packet should be seen as unreliable.
+     */
+    if (!seen_empty_ring &&
+        ring->stats->packets_unreliable < ring->unreliable_packet_count) {
+      ring->stats->packets_unreliable++;
       continue;
     }
 
