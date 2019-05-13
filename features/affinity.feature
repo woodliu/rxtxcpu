@@ -22,3 +22,10 @@ Feature: affinity
     6 packets captured on cpu1.
     6 packets captured total.
     """
+
+  Scenario: Unreliable packets are skipped
+    Given I wait 0.2 seconds for a command to start up
+    When I run `sudo timeout -s INT 2 taskset -c 1 ping -i0 127.0.0.1` in background
+    And I run `sudo timeout -s INT 2 ../../rxtxcpu lo`
+    Then the stdout from "sudo timeout -s INT 2 ../../rxtxcpu lo" should contain "0 packets captured on cpu0."
+    And the stdout from "sudo timeout -s INT 2 ../../rxtxcpu lo" should not contain "0 packets captured on cpu1."

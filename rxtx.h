@@ -63,10 +63,12 @@ struct rxtx_ring {
   struct rxtx_stats *stats;
   int               idx;
   int               fd;
+  unsigned int      unreliable_packet_count;
 };
 
 struct rxtx_stats {
   uintmax_t       packets_received;
+  unsigned int    packets_unreliable;
   pthread_mutex_t *mutex;
 };
 
