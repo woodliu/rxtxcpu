@@ -66,7 +66,7 @@ toeplitz_hash(u_int keylen, const uint8_t *key, u_int datalen,
 
         /* XXXRW: Perhaps an assertion about key length vs. data length? */
 
-        v = (key[0]<<24) + (key[1]<<16) + (key[2] <<8) + key[3];
+        v = (key[0]<<24) + (key[1]<<16) + (key[2]<<8) + key[3];
         for (i = 0; i < datalen; i++) {
                 for (b = 0; b < 8; b++) {
                         if (data[i] & (1<<(7-b)))
@@ -100,7 +100,7 @@ rss_hash_ip4_4tuple(uint8_t *rss_key, u_int rss_keysize, struct in_addr src, u_s
         datalen += sizeof(srcport);
         bcopy(&dstport, &data[datalen], sizeof(dstport));
         datalen += sizeof(dstport);
-	return (toeplitz_hash(rss_keysize, rss_key, datalen, data));
+        return (toeplitz_hash(rss_keysize, rss_key, datalen, data));
 }
 
 /*
@@ -129,64 +129,64 @@ rss_hash_ip6_4tuple(uint8_t *rss_key, u_int rss_keysize, struct in6_addr src, u_
 int
 main(int argc, char *argv[])
 {
-	struct in_addr src, dst;
-	struct in6_addr src6, dst6;
-	int af_family;
-	u_short srcport, dstport;
-	struct addrinfo *ai, a;
-	int r;
+        struct in_addr src, dst;
+        struct in6_addr src6, dst6;
+        int af_family;
+        u_short srcport, dstport;
+        struct addrinfo *ai, a;
+        int r;
 
-	/* Lookup */
-	bzero(&a, sizeof(a));
-	a.ai_flags = AI_NUMERICHOST;
-	a.ai_family = AF_UNSPEC;
+        /* Lookup */
+        bzero(&a, sizeof(a));
+        a.ai_flags = AI_NUMERICHOST;
+        a.ai_family = AF_UNSPEC;
 
-	r = getaddrinfo(argv[1], NULL, &a, &ai);
-	if (r < 0) {
-		err(1, "%s: getaddrinfo(src)", argv[0]);
-	}
+        r = getaddrinfo(argv[1], NULL, &a, &ai);
+        if (r < 0) {
+                err(1, "%s: getaddrinfo(src)", argv[0]);
+        }
 
-	if (ai == NULL) {
-		fprintf(stderr, "%s: src (%s) couldn't be decoded!\n", argv[0], argv[1]);
-		exit(1);
-	}
+        if (ai == NULL) {
+                fprintf(stderr, "%s: src (%s) couldn't be decoded!\n", argv[0], argv[1]);
+                exit(1);
+        }
 
-	af_family = -1;
-	if (ai->ai_family == AF_INET) {
-		af_family = AF_INET;
-		printf("src=ipv4\n");
-		src = ((struct sockaddr_in *) ai->ai_addr)->sin_addr;
-	} else if (ai->ai_family == AF_INET6) {
-		af_family = AF_INET6;
-		printf("src=ipv6\n");
-		src6 = ((struct sockaddr_in6 *) ai->ai_addr)->sin6_addr;
-	} else {
-		fprintf(stderr, "%s: src (%s) isn't ipv4 or ipv6!\n", argv[0], argv[1]);
-	}
+        af_family = -1;
+        if (ai->ai_family == AF_INET) {
+                af_family = AF_INET;
+                printf("src=ipv4\n");
+                src = ((struct sockaddr_in *) ai->ai_addr)->sin_addr;
+        } else if (ai->ai_family == AF_INET6) {
+                af_family = AF_INET6;
+                printf("src=ipv6\n");
+                src6 = ((struct sockaddr_in6 *) ai->ai_addr)->sin6_addr;
+        } else {
+                fprintf(stderr, "%s: src (%s) isn't ipv4 or ipv6!\n", argv[0], argv[1]);
+        }
 
-	srcport = htons(atoi(argv[2]));
+        srcport = htons(atoi(argv[2]));
 
-	r = getaddrinfo(argv[3], NULL, &a, &ai);
-	if (r < 0) {
-		err(1, "%s: getaddrinfo(dst)", argv[0]);
-	}
+        r = getaddrinfo(argv[3], NULL, &a, &ai);
+        if (r < 0) {
+                err(1, "%s: getaddrinfo(dst)", argv[0]);
+        }
 
-	if (ai == NULL) {
-		fprintf(stderr, "%s: dst (%s) couldn't be decoded!\n", argv[0], argv[3]);
-		exit(1);
-	}
+        if (ai == NULL) {
+                fprintf(stderr, "%s: dst (%s) couldn't be decoded!\n", argv[0], argv[3]);
+                exit(1);
+        }
 
-	/* XXX should check that this matches src type */
-	if (ai->ai_family == AF_INET) {
-		dst = ((struct sockaddr_in *) ai->ai_addr)->sin_addr;
-	} else if (ai->ai_family == AF_INET6) {
-		af_family = AF_INET6;
-		dst6 = ((struct sockaddr_in6 *) ai->ai_addr)->sin6_addr;
-	} else {
-		fprintf(stderr, "%s: dst (%s) isn't ipv4 or ipv6!\n", argv[0], argv[3]);
-	}
+        /* XXX should check that this matches src type */
+        if (ai->ai_family == AF_INET) {
+                dst = ((struct sockaddr_in *) ai->ai_addr)->sin_addr;
+        } else if (ai->ai_family == AF_INET6) {
+                af_family = AF_INET6;
+                dst6 = ((struct sockaddr_in6 *) ai->ai_addr)->sin6_addr;
+        } else {
+                fprintf(stderr, "%s: dst (%s) isn't ipv4 or ipv6!\n", argv[0], argv[3]);
+        }
 
-	dstport = htons(atoi(argv[4]));
+        dstport = htons(atoi(argv[4]));
 
         char *rss_keystr = argv[5];
         if (!rss_keystr) {
@@ -200,13 +200,13 @@ main(int argc, char *argv[])
                 exit(1);
         }
 
-	if (af_family == AF_INET) {
-		printf("(v4) hash: 0x%08x\n",
-		    rss_hash_ip4_4tuple(rss_key, rss_keysize, src, srcport, dst, dstport));
-	} else if (af_family == AF_INET6) {
-		printf("(v6) hash: 0x%08x\n",
-		    rss_hash_ip6_4tuple(rss_key, rss_keysize, src6, srcport, dst6, dstport));
-	}
+        if (af_family == AF_INET) {
+                printf("(v4) hash: 0x%08x\n",
+                    rss_hash_ip4_4tuple(rss_key, rss_keysize, src, srcport, dst, dstport));
+        } else if (af_family == AF_INET6) {
+                printf("(v6) hash: 0x%08x\n",
+                    rss_hash_ip6_4tuple(rss_key, rss_keysize, src6, srcport, dst6, dstport));
+        }
 
-	exit (0);
+        exit(0);
 }
