@@ -154,11 +154,9 @@ main(int argc, char *argv[])
         af_family = -1;
         if (ai->ai_family == AF_INET) {
                 af_family = AF_INET;
-                printf("src=ipv4\n");
                 src = ((struct sockaddr_in *) ai->ai_addr)->sin_addr;
         } else if (ai->ai_family == AF_INET6) {
                 af_family = AF_INET6;
-                printf("src=ipv6\n");
                 src6 = ((struct sockaddr_in6 *) ai->ai_addr)->sin6_addr;
         } else {
                 fprintf(stderr, "%s: src (%s) isn't ipv4 or ipv6!\n", argv[0], argv[1]);
@@ -201,10 +199,10 @@ main(int argc, char *argv[])
         }
 
         if (af_family == AF_INET) {
-                printf("(v4) hash: 0x%08x\n",
+                printf("%08x\n",
                     rss_hash_ip4_4tuple(rss_key, rss_keysize, src, srcport, dst, dstport));
         } else if (af_family == AF_INET6) {
-                printf("(v6) hash: 0x%08x\n",
+                printf("%08x\n",
                     rss_hash_ip6_4tuple(rss_key, rss_keysize, src6, srcport, dst6, dstport));
         }
 
