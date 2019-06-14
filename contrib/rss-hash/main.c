@@ -1,17 +1,18 @@
 /*
  * Copyright (c) 2014 Adrian Chadd <adrian@FreeBSD.org>
+ * Copyright (c) 2019-present StackPath, LLC
  * All rights reserved.
  *
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  *
- * This source code was originally released under the BSD-3-Clause license
- * here:
+ * Much of this source code was originally released under the BSD-3-Clause
+ * license here:
  *
  *   https://github.com/erikarn/freebsd-rss/blob/45607c93eadf7ad73e8d13e902b2ea55b4b37ca1/rss-hash/main.c
  *
  * I reached out to the original author, Adrian Chadd <adrian.chadd@gmail.com>,
- * and obtained his permission to rerelease this code here under the MIT
+ * and obtained his permission to rerelease the copied code here under the MIT
  * license.
  */
 
@@ -25,26 +26,36 @@
 #include <netdb.h>
 #include <err.h>
 
-#define	RSS_KEYSIZE 40
+#define DEFAULT_RSS_KEYSTR "6d:5a:56:da:25:5b:0e:c2:41:67:25:3d:43:a3:8f:b0:d0:ca:2b:cb:ae:7b:30:b4:77:cb:2d:a3:80:30:f2:0c:6a:42:b7:3b:be:ac:01:fa"
 
+int parse_rss_key(char *rss_keystr, uint8_t *rss_key, u_int rss_keysize) {
+        char *tofree, *p;
 
-#if 0
-static uint8_t  rss_key[RSS_KEYSIZE] = {
-        0x43, 0xa3, 0x8f, 0xb0, 0x41, 0x67, 0x25, 0x3d,
-        0x25, 0x5b, 0x0e, 0xc2, 0x6d, 0x5a, 0x56, 0xda,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-};
-#else
-static uint8_t  rss_key[RSS_KEYSIZE] = {
-	0x6d, 0x5a, 0x56, 0xda, 0x25, 0x5b, 0x0e, 0xc2,
-	0x41, 0x67, 0x25, 0x3d, 0x43, 0xa3, 0x8f, 0xb0,
-	0xd0, 0xca, 0x2b, 0xcb, 0xae, 0x7b, 0x30, 0xb4,
-	0x77, 0xcb, 0x2d, 0xa3, 0x80, 0x30, 0xf2, 0x0c,
-	0x6a, 0x42, 0xb7, 0x3b, 0xbe, 0xac, 0x01, 0xfa
-};
-#endif
+        tofree = p = strdup(rss_keystr);
+
+        for (int i = 0; i < rss_keysize; i++) {
+
+                if (p[2] == ':') {
+                        p[2] = '\0';
+                }
+
+                /*
+                 * Format dictates the third char started as a ':' or '\0'.
+                 * ':'s were just converted, so '\0' is the only valid option.
+                 */
+                if (p[2] != '\0') {
+                        free(tofree);
+                        return -1;
+                }
+
+                rss_key[i] = (uint8_t) strtol(p, NULL, 16);
+
+                p = p + 3;
+        }
+
+        free(tofree);
+        return 0;
+}
 
 uint32_t
 toeplitz_hash(u_int keylen, const uint8_t *key, u_int datalen,
@@ -55,13 +66,13 @@ toeplitz_hash(u_int keylen, const uint8_t *key, u_int datalen,
 
         /* XXXRW: Perhaps an assertion about key length vs. data length? */
 
-        v = (key[0]<<24) + (key[1]<<16) + (key[2] <<8) + key[3];
+        v = (key[0]<<24) + (key[1]<<16) + (key[2]<<8) + key[3];
         for (i = 0; i < datalen; i++) {
                 for (b = 0; b < 8; b++) {
                         if (data[i] & (1<<(7-b)))
                                 hash ^= v;
                         v <<= 1;
-                        if ((i + 4) < RSS_KEYSIZE &&
+                        if ((i + 4) < keylen &&
                             (key[i+4] & (1<<(7-b))))
                                 v |= 1;
                 }
@@ -73,7 +84,7 @@ toeplitz_hash(u_int keylen, const uint8_t *key, u_int datalen,
  * Hash an IPv4 4-tuple.
  */
 uint32_t
-rss_hash_ip4_4tuple(struct in_addr src, u_short srcport, struct in_addr dst,
+rss_hash_ip4_4tuple(uint8_t *rss_key, u_int rss_keysize, struct in_addr src, u_short srcport, struct in_addr dst,
     u_short dstport)
 {
         uint8_t data[sizeof(src) + sizeof(dst) + sizeof(srcport) +
@@ -89,14 +100,14 @@ rss_hash_ip4_4tuple(struct in_addr src, u_short srcport, struct in_addr dst,
         datalen += sizeof(srcport);
         bcopy(&dstport, &data[datalen], sizeof(dstport));
         datalen += sizeof(dstport);
-	return (toeplitz_hash(sizeof(rss_key), rss_key, datalen, data));
+        return (toeplitz_hash(rss_keysize, rss_key, datalen, data));
 }
 
 /*
  * Hash an IPv6 4-tuple.
  */
 uint32_t
-rss_hash_ip6_4tuple(struct in6_addr src, u_short srcport,
+rss_hash_ip6_4tuple(uint8_t *rss_key, u_int rss_keysize, struct in6_addr src, u_short srcport,
     struct in6_addr dst, u_short dstport)
 {
         uint8_t data[sizeof(src) + sizeof(dst) + sizeof(srcport) +
@@ -112,87 +123,88 @@ rss_hash_ip6_4tuple(struct in6_addr src, u_short srcport,
         datalen += sizeof(srcport);
         bcopy(&dstport, &data[datalen], sizeof(dstport));
         datalen += sizeof(dstport);
-        return (toeplitz_hash(sizeof(rss_key), rss_key, datalen, data));
+        return (toeplitz_hash(rss_keysize, rss_key, datalen, data));
 }
 
 int
 main(int argc, char *argv[])
 {
-	struct in_addr src, dst;
-	struct in6_addr src6, dst6;
-	int af_family;
-	u_short srcport, dstport;
-	struct addrinfo *ai, a;
-	int r;
+        struct in_addr src, dst;
+        struct in6_addr src6, dst6;
+        int af_family;
+        u_short srcport, dstport;
+        struct addrinfo *ai, a;
+        int r;
 
-	/* Lookup */
-	bzero(&a, sizeof(a));
-	a.ai_flags = AI_NUMERICHOST;
-	a.ai_family = AF_UNSPEC;
+        /* Lookup */
+        bzero(&a, sizeof(a));
+        a.ai_flags = AI_NUMERICHOST;
+        a.ai_family = AF_UNSPEC;
 
-	r = getaddrinfo(argv[1], NULL, &a, &ai);
-	if (r < 0) {
-		err(1, "%s: getaddrinfo(src)", argv[0]);
-	}
+        r = getaddrinfo(argv[1], NULL, &a, &ai);
+        if (r < 0) {
+                err(1, "%s: getaddrinfo(src)", argv[0]);
+        }
 
-	if (ai == NULL) {
-		fprintf(stderr, "%s: src (%s) couldn't be decoded!\n", argv[0], argv[1]);
-		exit(1);
-	}
+        if (ai == NULL) {
+                fprintf(stderr, "%s: src (%s) couldn't be decoded!\n", argv[0], argv[1]);
+                exit(1);
+        }
 
-	af_family = -1;
-	if (ai->ai_family == AF_INET) {
-		af_family = AF_INET;
-		printf("src=ipv4\n");
-		src = ((struct sockaddr_in *) ai->ai_addr)->sin_addr;
-	} else if (ai->ai_family == AF_INET6) {
-		af_family = AF_INET6;
-		printf("src=ipv6\n");
-		src6 = ((struct sockaddr_in6 *) ai->ai_addr)->sin6_addr;
-	} else {
-		fprintf(stderr, "%s: src (%s) isn't ipv4 or ipv6!\n", argv[0], argv[1]);
-	}
+        af_family = -1;
+        if (ai->ai_family == AF_INET) {
+                af_family = AF_INET;
+                src = ((struct sockaddr_in *) ai->ai_addr)->sin_addr;
+        } else if (ai->ai_family == AF_INET6) {
+                af_family = AF_INET6;
+                src6 = ((struct sockaddr_in6 *) ai->ai_addr)->sin6_addr;
+        } else {
+                fprintf(stderr, "%s: src (%s) isn't ipv4 or ipv6!\n", argv[0], argv[1]);
+        }
 
-	srcport = htons(atoi(argv[2]));
+        srcport = htons(atoi(argv[2]));
 
-	r = getaddrinfo(argv[3], NULL, &a, &ai);
-	if (r < 0) {
-		err(1, "%s: getaddrinfo(dst)", argv[0]);
-	}
+        r = getaddrinfo(argv[3], NULL, &a, &ai);
+        if (r < 0) {
+                err(1, "%s: getaddrinfo(dst)", argv[0]);
+        }
 
-	if (ai == NULL) {
-		fprintf(stderr, "%s: dst (%s) couldn't be decoded!\n", argv[0], argv[3]);
-		exit(1);
-	}
+        if (ai == NULL) {
+                fprintf(stderr, "%s: dst (%s) couldn't be decoded!\n", argv[0], argv[3]);
+                exit(1);
+        }
 
-	/* XXX should check that this matches src type */
-	if (ai->ai_family == AF_INET) {
-		dst = ((struct sockaddr_in *) ai->ai_addr)->sin_addr;
-	} else if (ai->ai_family == AF_INET6) {
-		af_family = AF_INET6;
-		dst6 = ((struct sockaddr_in6 *) ai->ai_addr)->sin6_addr;
-	} else {
-		fprintf(stderr, "%s: dst (%s) isn't ipv4 or ipv6!\n", argv[0], argv[3]);
-	}
+        /* XXX should check that this matches src type */
+        if (ai->ai_family == AF_INET) {
+                dst = ((struct sockaddr_in *) ai->ai_addr)->sin_addr;
+        } else if (ai->ai_family == AF_INET6) {
+                af_family = AF_INET6;
+                dst6 = ((struct sockaddr_in6 *) ai->ai_addr)->sin6_addr;
+        } else {
+                fprintf(stderr, "%s: dst (%s) isn't ipv4 or ipv6!\n", argv[0], argv[3]);
+        }
 
-	dstport = htons(atoi(argv[4]));
+        dstport = htons(atoi(argv[4]));
 
-	if (af_family == AF_INET) {
-		printf("(v4) hash: 0x%08x\n",
-		    rss_hash_ip4_4tuple(src, srcport, dst, dstport));
-	} else if (af_family == AF_INET6) {
-		printf("(v6) hash: 0x%08x\n",
-		    rss_hash_ip6_4tuple(src6, srcport, dst6, dstport));
-	}
-#if 0
-	/* IPv4 */
-	(void) inet_aton(argv[1], &src);
-	srcport = htons(atoi(argv[2]));
-	(void) inet_aton(argv[3], &dst);
+        char *rss_keystr = argv[5];
+        if (!rss_keystr) {
+                rss_keystr = DEFAULT_RSS_KEYSTR;
+        }
+        u_int rss_keysize = (strlen(rss_keystr) + 1) / 3;
+        uint8_t rss_key[rss_keysize];
 
-	printf("hash: 0x%08x\n",
-	    rss_hash_ip4_4tuple(src, srcport, dst, dstport));
-#endif
+        if (parse_rss_key(rss_keystr, rss_key, rss_keysize) < 0) {
+                fprintf(stderr, "%s: failed to parse rss key!\n", argv[0]);
+                exit(1);
+        }
 
-	exit (0);
+        if (af_family == AF_INET) {
+                printf("%08x\n",
+                    rss_hash_ip4_4tuple(rss_key, rss_keysize, src, srcport, dst, dstport));
+        } else if (af_family == AF_INET6) {
+                printf("%08x\n",
+                    rss_hash_ip6_4tuple(rss_key, rss_keysize, src6, srcport, dst6, dstport));
+        }
+
+        exit(0);
 }
