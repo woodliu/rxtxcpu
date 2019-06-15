@@ -136,6 +136,9 @@ main(int argc, char *argv[])
         struct addrinfo *ai, a;
         int r;
 
+        bzero(&src6, sizeof(struct in6_addr));
+        bzero(&dst6, sizeof(struct in6_addr));
+
         /* Lookup */
         bzero(&a, sizeof(a));
         a.ai_flags = AI_NUMERICHOST;
@@ -174,11 +177,17 @@ main(int argc, char *argv[])
                 exit(1);
         }
 
-        /* XXX should check that this matches src type */
         if (ai->ai_family == AF_INET) {
+                if (af_family != AF_INET) {
+                        fprintf(stderr, "%s: ipv6 src (%s) and ipv4 dst (%s) is not a valid flow!\n", argv[0], argv[1], argv[3]);
+                        exit(1);
+                }
                 dst = ((struct sockaddr_in *) ai->ai_addr)->sin_addr;
         } else if (ai->ai_family == AF_INET6) {
-                af_family = AF_INET6;
+                if (af_family != AF_INET6) {
+                        fprintf(stderr, "%s: ipv4 src (%s) and ipv6 dst (%s) is not a valid flow!\n", argv[0], argv[1], argv[3]);
+                        exit(1);
+                }
                 dst6 = ((struct sockaddr_in6 *) ai->ai_addr)->sin6_addr;
         } else {
                 fprintf(stderr, "%s: dst (%s) isn't ipv4 or ipv6!\n", argv[0], argv[3]);
