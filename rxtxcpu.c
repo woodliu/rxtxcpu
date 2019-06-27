@@ -24,8 +24,8 @@
 #include <sched.h>    // for CPU_CLR(), CPU_COUNT(), CPU_ISSET(), CPU_SET(),
                       //     cpu_set_t
 #include <stdbool.h>  // for bool, false, true
-#include <stdio.h>    // for FILE, fprintf(), fputs(), NULL, printf(), puts(),
-                      //     sprintf(), stderr, stdout
+#include <stdio.h>    // for asprintf(), FILE, fprintf(), fputs(), NULL,
+                      //     printf(), puts(), stderr, stdout
 #include <stdlib.h>   // for malloc()
 #include <string.h>   // for GNU basename(), memset(), strcmp(), strlen()
 #include <unistd.h>   // for _SC_NPROCESSORS_CONF, sysconf()
@@ -34,7 +34,6 @@
 #define EXIT_FAIL        1
 #define EXIT_FAIL_OPTION 2
 
-#define MAX_SHORT_BADOPT_LENGTH 2
 #define OPTION_COUNT_BASE 10
 #define OPTION_CPU_LIST_BASE 10
 
@@ -257,8 +256,7 @@ int main(int argc, char **argv) {
          * options and argv[optind-1] for long options.
          */
         if (optopt) {
-          badopt = malloc(MAX_SHORT_BADOPT_LENGTH + 1);
-          sprintf(badopt, "-%c", optopt);
+          asprintf(&badopt, "-%c", optopt);
         } else {
           badopt = argv[optind-1];
         }

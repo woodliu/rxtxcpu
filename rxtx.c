@@ -39,22 +39,13 @@
                       //     pthread_self()
 #include <sched.h>    // for sched_getcpu()
 #include <stdbool.h>  // for true
-#include <stdio.h>    // for fprintf(), NULL, stderr, stdout, sprintf()
+#include <stdio.h>    // for asprintf(), fprintf(), NULL, stderr, stdout
 #include <stdlib.h>   // for calloc(), exit(), free()
 #include <string.h>   // for memset(), strcmp(), strerror(), strlen()
 #include <time.h>     // for time()
 #include <unistd.h>   // for getpid()
 
 #define EXIT_FAIL 1
-
-/*
- * The largest positive number an int can hold is 2,147,483,647. The smallest
- * negative number an int can hold is -2,147,483,648. Therefore, the longest
- * strlen() value for string produced by printf() and friends is 11 characters.
- *
- *   strlen("-2147483648");
- */
-#define MAX_INT_AS_STRING_LENGTH 11
 
 #define PACKET_BUFFER_SIZE 65535
 #define SNAPLEN 65535
@@ -216,13 +207,9 @@ static void rxtx_pcap_init(struct rxtx_pcap *p, char *filename, int ring_idx) {
     if (strcmp(filename, "-") == 0) {
       p->filename = filename;
     } else {
-      p->filename = calloc(
-        1,
-        strlen(filename) + MAX_INT_AS_STRING_LENGTH + 2 /* for "-" and '\0' */
-      );
       char *copy = noext_copy(filename);
-      sprintf(
-        p->filename,
+      asprintf(
+        &(p->filename),
         "%s-%d.%s",
         copy,
         ring_idx,
