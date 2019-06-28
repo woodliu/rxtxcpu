@@ -61,6 +61,8 @@ static void rxtx_pcap_init(struct rxtx_pcap *p, char *filename, int ring_idx);
 static void rxtx_pcap_destroy(struct rxtx_pcap *p);
 static void
 rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx);
+static void
+rxtx_ring_pcap_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx);
 static void rxtx_ring_destroy(struct rxtx_ring *p);
 static void rxtx_stats_init(struct rxtx_stats *p);
 static void rxtx_stats_destroy(struct rxtx_stats *p);
@@ -154,6 +156,10 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
    */
   for (int i = 0; i < args->ring_count; i++) {
     rxtx_ring_init(&(p->rings[i]), p, i);
+    if (!CPU_ISSET(i, &(args->ring_set))) {
+      continue;
+    }
+    rxtx_ring_pcap_init(&(p->rings[i]), p, i);
   }
 
   /*
@@ -374,7 +380,10 @@ rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx) {
      *         int shutdown (int socket, int how)
      */
   }
+}
 
+static void
+rxtx_ring_pcap_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx) {
   /*
    * We need to init our pcaps after we've successfully opened sockets.
    * Otherwise the pcap header gets written to stdout even when socket setup

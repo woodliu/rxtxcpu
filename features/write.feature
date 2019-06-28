@@ -37,3 +37,8 @@ Feature: `--write=FILE`
     When I run `sudo timeout -s INT 2 bash -c '../../rxtxcpu -l 0 -w - -U lo | tcpdump -c 3 -r -'` in background
     And I run `ping -i0.2 -c3 localhost` on cpu 0
     Then the output from "sudo timeout -s INT 2 bash -c '../../rxtxcpu -l 0 -w - -U lo | tcpdump -c 3 -r -'" should contain "IP localhost > localhost: ICMP echo request"
+
+  Scenario: With `-w out.pcap` on a subset of cpus.
+    When I run `sudo timeout -s INT 2 ../../rxtxcpu -l0 -w out.pcap -U lo`
+    Then a file named "out-0.pcap" should exist
+    And a file named "out-1.pcap" should not exist
