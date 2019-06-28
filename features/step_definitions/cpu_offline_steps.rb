@@ -6,7 +6,7 @@ Given /^I disable cpu ([\d]+)$/ do |cpu|
   cmd = %Q{
     sudo bash -c '
       (echo 0 > /sys/devices/system/node/node[0-9]*/cpu#{cpu}/online) 2>/dev/null
-      grep "^0\$" /sys/devices/system/node/node[0-9]*/cpu#{cpu}/online
+      `#grep "^0\$" /sys/devices/system/node/node[0-9]*/cpu#{cpu}/online`
     '
   }
   run_command_and_stop(sanitize_text(cmd), fail_on_error: true)
@@ -16,7 +16,7 @@ Given /^I enable cpu ([\d]+)$/ do |cpu|
   cmd = %Q{
     sudo bash -c '
       (echo 1 > /sys/devices/system/node/node[0-9]*/cpu#{cpu}/online) 2>/dev/null
-      grep "^1\$" /sys/devices/system/node/node[0-9]*/cpu#{cpu}/online
+      `#grep "^1\$" /sys/devices/system/node/node[0-9]*/cpu#{cpu}/online`
     '
   }
   run_command_and_stop(sanitize_text(cmd), fail_on_error: true)

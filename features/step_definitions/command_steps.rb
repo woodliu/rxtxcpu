@@ -1,7 +1,3 @@
-Given(/^I wait ([\d]+.[\d]+) seconds? for (?:a|the) command to start up$/) do |seconds|
-  aruba.config.startup_wait_time = seconds.to_f
-end
-
 When(/^I run `([^`]*)` on cpu ([\d]+)$/) do |cmd, cpu|
   cmd = sanitize_text(cmd)
   cmd = "taskset -c #{cpu} #{cmd}"

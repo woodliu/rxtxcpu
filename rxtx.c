@@ -39,22 +39,13 @@
                       //     pthread_self()
 #include <sched.h>    // for sched_getcpu()
 #include <stdbool.h>  // for true
-#include <stdio.h>    // for fprintf(), NULL, stderr, stdout, sprintf()
+#include <stdio.h>    // for asprintf(), fprintf(), NULL, stderr, stdout
 #include <stdlib.h>   // for calloc(), exit(), free()
 #include <string.h>   // for memset(), strcmp(), strerror(), strlen()
 #include <time.h>     // for time()
 #include <unistd.h>   // for getpid()
 
 #define EXIT_FAIL 1
-
-/*
- * The largest positive number an int can hold is 2,147,483,647. The smallest
- * negative number an int can hold is -2,147,483,648. Therefore, the longest
- * strlen() value for string produced by printf() and friends is 11 characters.
- *
- *   strlen("-2147483648");
- */
-#define MAX_INT_AS_STRING_LENGTH 11
 
 #define PACKET_BUFFER_SIZE 65535
 #define SNAPLEN 65535
@@ -70,6 +61,8 @@ static void rxtx_pcap_init(struct rxtx_pcap *p, char *filename, int ring_idx);
 static void rxtx_pcap_destroy(struct rxtx_pcap *p);
 static void
 rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx);
+static void
+rxtx_ring_pcap_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx);
 static void rxtx_ring_destroy(struct rxtx_ring *p);
 static void rxtx_stats_init(struct rxtx_stats *p);
 static void rxtx_stats_destroy(struct rxtx_stats *p);
@@ -163,6 +156,10 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
    */
   for (int i = 0; i < args->ring_count; i++) {
     rxtx_ring_init(&(p->rings[i]), p, i);
+    if (!CPU_ISSET(i, &(args->ring_set))) {
+      continue;
+    }
+    rxtx_ring_pcap_init(&(p->rings[i]), p, i);
   }
 
   /*
@@ -216,13 +213,9 @@ static void rxtx_pcap_init(struct rxtx_pcap *p, char *filename, int ring_idx) {
     if (strcmp(filename, "-") == 0) {
       p->filename = filename;
     } else {
-      p->filename = calloc(
-        1,
-        strlen(filename) + MAX_INT_AS_STRING_LENGTH + 2 /* for "-" and '\0' */
-      );
       char *copy = noext_copy(filename);
-      sprintf(
-        p->filename,
+      asprintf(
+        &(p->filename),
         "%s-%d.%s",
         copy,
         ring_idx,
@@ -387,7 +380,10 @@ rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx) {
      *         int shutdown (int socket, int how)
      */
   }
+}
 
+static void
+rxtx_ring_pcap_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx) {
   /*
    * We need to init our pcaps after we've successfully opened sockets.
    * Otherwise the pcap header gets written to stdout even when socket setup
