@@ -11,7 +11,8 @@ apt-get install -y \
   libpcap-dev \
   "linux-headers-`uname -r`" \
   make \
-  tcpdump
+  tcpdump \
+  valgrind
 
 echo 'search extra' > /etc/depmod.d/extra.conf
 depmod -a

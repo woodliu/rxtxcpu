@@ -11,4 +11,5 @@ yum install -y \
   "kernel-devel-uname-r == `uname -r`" \
   libpcap-devel \
   make \
-  tcpdump
+  tcpdump \
+  valgrind
