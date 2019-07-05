@@ -41,7 +41,7 @@
 #include <stdbool.h>  // for true
 #include <stdio.h>    // for asprintf(), fprintf(), NULL, stderr, stdout
 #include <stdlib.h>   // for calloc(), exit(), free()
-#include <string.h>   // for memset(), strcmp(), strerror(), strlen()
+#include <string.h>   // for memset(), strcmp(), strdup(), strerror(), strlen()
 #include <time.h>     // for time()
 #include <unistd.h>   // for getpid()
 
@@ -210,7 +210,7 @@ static void rxtx_desc_destroy(struct rxtx_desc *p) {
 static void rxtx_pcap_init(struct rxtx_pcap *p, char *filename, int ring_idx) {
   if (filename) {
     if (strcmp(filename, "-") == 0) {
-      p->filename = filename;
+      p->filename = strdup(filename);
     } else {
       char *copy = noext_copy(filename);
       asprintf(
@@ -272,9 +272,7 @@ static void rxtx_pcap_destroy(struct rxtx_pcap *p) {
     p->fp = NULL;
     pcap_close(p->desc);
     p->desc = NULL;
-    if (strcmp(p->filename, "-") != 0) {
-      free(p->filename);
-    }
+    free(p->filename);
     p->filename = NULL;
     p->owner_idx = 0;
   }
