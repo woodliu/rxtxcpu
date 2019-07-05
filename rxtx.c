@@ -230,26 +230,11 @@ static void rxtx_pcap_init(struct rxtx_pcap *p, char *filename, int ring_idx) {
       );
       exit(EXIT_FAIL);
     }
-
-    p->mutex = calloc(1, sizeof(*p->mutex));
-    if (pthread_mutex_init(p->mutex, NULL) != 0) {
-      fprintf(
-        stderr,
-        "%s: Error initializing mutex for dump file '%s'.\n",
-        program_basename,
-        p->filename
-      );
-      exit(EXIT_FAIL);
-    }
   }
 }
 
 static void rxtx_pcap_destroy(struct rxtx_pcap *p) {
   if (p->filename) {
-    pthread_mutex_destroy(p->mutex);
-    free(p->mutex);
-    p->mutex = NULL;
-
     /* protect against silent write failures */
     if ((pcap_dump_flush(p->fp)) == -1) {
       fprintf(
@@ -500,7 +485,6 @@ void *rxtx_loop(void *r) {
       pcap_packet_header.ts.tv_sec  = time(NULL);
       pcap_packet_header.ts.tv_usec = 0;
 
-      pthread_mutex_lock(pcap->mutex);
       pcap_dump((unsigned char *)pcap->fp, &pcap_packet_header, packet_buffer);
 
       if (args->packet_buffered) {
@@ -514,7 +498,6 @@ void *rxtx_loop(void *r) {
           exit(EXIT_FAIL);
         }
       }
-      pthread_mutex_unlock(pcap->mutex);
     }
   }
   return NULL;
