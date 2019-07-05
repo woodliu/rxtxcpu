@@ -57,7 +57,7 @@ char *program_basename = NULL;
 
 static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args);
 static void rxtx_desc_destroy(struct rxtx_desc *p);
-static void rxtx_pcap_init(struct rxtx_pcap *p, char *filename, int ring_idx);
+static void rxtx_pcap_init(struct rxtx_pcap *p, char *filename);
 static void rxtx_pcap_destroy(struct rxtx_pcap *p);
 static void
 rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx);
@@ -157,8 +157,29 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
     if (!CPU_ISSET(i, &(args->ring_set))) {
       continue;
     }
-    p->rings[i].pcap = calloc(1, sizeof(*p->rings[i].pcap));
-    rxtx_pcap_init(p->rings[i].pcap, args->pcap_filename, i);
+
+    if (args->pcap_filename) {
+      p->rings[i].pcap = calloc(1, sizeof(*p->rings[i].pcap));
+
+      char *filename;
+
+      if (strcmp(args->pcap_filename, "-") == 0) {
+        filename = strdup(args->pcap_filename);
+      } else {
+        char *copy = noext_copy(args->pcap_filename);
+        asprintf(
+          &filename,
+          "%s-%d.%s",
+          copy,
+          i,
+          ext(args->pcap_filename)
+        );
+        free(copy);
+      }
+
+      rxtx_pcap_init(p->rings[i].pcap, filename);
+      free(filename);
+    }
   }
 
   /*
@@ -202,57 +223,40 @@ static void rxtx_desc_destroy(struct rxtx_desc *p) {
   p->args = NULL;
 }
 
-static void rxtx_pcap_init(struct rxtx_pcap *p, char *filename, int ring_idx) {
-  if (filename) {
-    if (strcmp(filename, "-") == 0) {
-      p->filename = strdup(filename);
-    } else {
-      char *copy = noext_copy(filename);
-      asprintf(
-        &(p->filename),
-        "%s-%d.%s",
-        copy,
-        ring_idx,
-        ext(filename)
-      );
-      free(copy);
-    }
+static void rxtx_pcap_init(struct rxtx_pcap *p, char *filename) {
+  p->filename = strdup(filename);
+  p->desc = pcap_open_dead(DLT_EN10MB, SNAPLEN);
 
-    p->desc = pcap_open_dead(DLT_EN10MB, SNAPLEN);
-
-    if ((p->fp = pcap_dump_open(p->desc, p->filename)) == NULL) {
-      fprintf(
-        stderr,
-        "%s: Error opening dump file '%s' for writing: %s\n",
-        program_basename,
-        p->filename,
-        pcap_geterr(p->desc)
-      );
-      exit(EXIT_FAIL);
-    }
+  if ((p->fp = pcap_dump_open(p->desc, p->filename)) == NULL) {
+    fprintf(
+      stderr,
+      "%s: Error opening dump file '%s' for writing: %s\n",
+      program_basename,
+      p->filename,
+      pcap_geterr(p->desc)
+    );
+    exit(EXIT_FAIL);
   }
 }
 
 static void rxtx_pcap_destroy(struct rxtx_pcap *p) {
-  if (p->filename) {
-    /* protect against silent write failures */
-    if ((pcap_dump_flush(p->fp)) == -1) {
-      fprintf(
-        stderr,
-        "%s: Error writing to dump file '%s'.\n",
-        program_basename,
-        p->filename
-      );
-      exit(EXIT_FAIL);
-    }
-
-    pcap_dump_close(p->fp);
-    p->fp = NULL;
-    pcap_close(p->desc);
-    p->desc = NULL;
-    free(p->filename);
-    p->filename = NULL;
+  /* protect against silent write failures */
+  if ((pcap_dump_flush(p->fp)) == -1) {
+    fprintf(
+      stderr,
+      "%s: Error writing to dump file '%s'.\n",
+      program_basename,
+      p->filename
+    );
+    exit(EXIT_FAIL);
   }
+
+  pcap_dump_close(p->fp);
+  p->fp = NULL;
+  pcap_close(p->desc);
+  p->desc = NULL;
+  free(p->filename);
+  p->filename = NULL;
 }
 
 static void
@@ -477,7 +481,7 @@ void *rxtx_loop(void *r) {
 
     rxtx_increment_counters(ring);
 
-    if (pcap->filename) {
+    if (pcap) {
       /* no need for memset(), we're initializing every member */
       struct pcap_pkthdr pcap_packet_header;
       pcap_packet_header.caplen     = (bpf_u_int32)packet_length;
