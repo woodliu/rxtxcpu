@@ -194,12 +194,7 @@ static void rxtx_desc_destroy(struct rxtx_desc *p) {
   rxtx_stats_destroy(p->stats);
   free(p->stats);
   p->stats = NULL;
-  /*
-   * We need to destroy our rings in reverse order. The lowest ring owns the
-   * pcap struct instance when writing to stdout. We don't want to free that
-   * memory too soon as other rings need to access struct members.
-   */
-  for (int i = p->args->ring_count - 1; i >= 0; i--) {
+  for (int i = 0; i < p->args->ring_count; i++) {
     rxtx_ring_destroy(&(p->rings[i]));
   }
   free(p->rings);
