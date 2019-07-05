@@ -199,7 +199,7 @@ static void rxtx_desc_destroy(struct rxtx_desc *p) {
    * pcap struct instance when writing to stdout. We don't want to free that
    * memory too soon as other rings need to access struct members.
    */
-  for (int i = p->args->ring_count - 1; i < 0; i--) {
+  for (int i = p->args->ring_count - 1; i >= 0; i--) {
     rxtx_ring_destroy(&(p->rings[i]));
   }
   free(p->rings);
@@ -392,7 +392,7 @@ static void rxtx_ring_destroy(struct rxtx_ring *p) {
   free(p->stats);
   p->stats = NULL;
   p->rtd = NULL;
-  if (p->pcap->owner_idx == p->idx) {
+  if (p->pcap && p->pcap->owner_idx == p->idx) {
     rxtx_pcap_destroy(p->pcap);
     free(p->pcap);
   }
