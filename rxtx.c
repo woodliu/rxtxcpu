@@ -41,7 +41,7 @@
 #include <stdbool.h>  // for true
 #include <stdio.h>    // for asprintf(), fprintf(), NULL, stderr, stdout
 #include <stdlib.h>   // for calloc(), exit(), free()
-#include <string.h>   // for memset(), strcmp(), strerror(), strlen()
+#include <string.h>   // for memset(), strcmp(), strdup(), strerror(), strlen()
 #include <time.h>     // for time()
 #include <unistd.h>   // for getpid()
 
@@ -194,12 +194,7 @@ static void rxtx_desc_destroy(struct rxtx_desc *p) {
   rxtx_stats_destroy(p->stats);
   free(p->stats);
   p->stats = NULL;
-  /*
-   * We need to destroy our rings in reverse order. The lowest ring owns the
-   * pcap struct instance when writing to stdout. We don't want to free that
-   * memory too soon as other rings need to access struct members.
-   */
-  for (int i = p->args->ring_count - 1; i >= 0; i--) {
+  for (int i = 0; i < p->args->ring_count; i++) {
     rxtx_ring_destroy(&(p->rings[i]));
   }
   free(p->rings);
@@ -210,7 +205,7 @@ static void rxtx_desc_destroy(struct rxtx_desc *p) {
 static void rxtx_pcap_init(struct rxtx_pcap *p, char *filename, int ring_idx) {
   if (filename) {
     if (strcmp(filename, "-") == 0) {
-      p->filename = filename;
+      p->filename = strdup(filename);
     } else {
       char *copy = noext_copy(filename);
       asprintf(
@@ -235,28 +230,11 @@ static void rxtx_pcap_init(struct rxtx_pcap *p, char *filename, int ring_idx) {
       );
       exit(EXIT_FAIL);
     }
-
-    p->mutex = calloc(1, sizeof(*p->mutex));
-    if (pthread_mutex_init(p->mutex, NULL) != 0) {
-      fprintf(
-        stderr,
-        "%s: Error initializing mutex for dump file '%s'.\n",
-        program_basename,
-        p->filename
-      );
-      exit(EXIT_FAIL);
-    }
-
-    p->owner_idx = ring_idx;
   }
 }
 
 static void rxtx_pcap_destroy(struct rxtx_pcap *p) {
   if (p->filename) {
-    pthread_mutex_destroy(p->mutex);
-    free(p->mutex);
-    p->mutex = NULL;
-
     /* protect against silent write failures */
     if ((pcap_dump_flush(p->fp)) == -1) {
       fprintf(
@@ -272,11 +250,8 @@ static void rxtx_pcap_destroy(struct rxtx_pcap *p) {
     p->fp = NULL;
     pcap_close(p->desc);
     p->desc = NULL;
-    if (strcmp(p->filename, "-") != 0) {
-      free(p->filename);
-    }
+    free(p->filename);
     p->filename = NULL;
-    p->owner_idx = 0;
   }
 }
 
@@ -392,7 +367,7 @@ static void rxtx_ring_destroy(struct rxtx_ring *p) {
   free(p->stats);
   p->stats = NULL;
   p->rtd = NULL;
-  if (p->pcap && p->pcap->owner_idx == p->idx) {
+  if (p->pcap) {
     rxtx_pcap_destroy(p->pcap);
     free(p->pcap);
   }
@@ -510,7 +485,6 @@ void *rxtx_loop(void *r) {
       pcap_packet_header.ts.tv_sec  = time(NULL);
       pcap_packet_header.ts.tv_usec = 0;
 
-      pthread_mutex_lock(pcap->mutex);
       pcap_dump((unsigned char *)pcap->fp, &pcap_packet_header, packet_buffer);
 
       if (args->packet_buffered) {
@@ -524,7 +498,6 @@ void *rxtx_loop(void *r) {
           exit(EXIT_FAIL);
         }
       }
-      pthread_mutex_unlock(pcap->mutex);
     }
   }
   return NULL;

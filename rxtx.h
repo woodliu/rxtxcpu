@@ -53,8 +53,6 @@ struct rxtx_pcap {
   pcap_t          *desc;
   char            *filename;
   pcap_dumper_t   *fp;
-  pthread_mutex_t *mutex;
-  int             owner_idx;
 };
 
 struct rxtx_ring {
