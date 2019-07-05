@@ -246,8 +246,6 @@ static void rxtx_pcap_init(struct rxtx_pcap *p, char *filename, int ring_idx) {
       );
       exit(EXIT_FAIL);
     }
-
-    p->owner_idx = ring_idx;
   }
 }
 
@@ -274,7 +272,6 @@ static void rxtx_pcap_destroy(struct rxtx_pcap *p) {
     p->desc = NULL;
     free(p->filename);
     p->filename = NULL;
-    p->owner_idx = 0;
   }
 }
 
@@ -390,7 +387,7 @@ static void rxtx_ring_destroy(struct rxtx_ring *p) {
   free(p->stats);
   p->stats = NULL;
   p->rtd = NULL;
-  if (p->pcap && p->pcap->owner_idx == p->idx) {
+  if (p->pcap) {
     rxtx_pcap_destroy(p->pcap);
     free(p->pcap);
   }

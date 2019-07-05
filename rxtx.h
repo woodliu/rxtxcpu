@@ -54,7 +54,6 @@ struct rxtx_pcap {
   char            *filename;
   pcap_dumper_t   *fp;
   pthread_mutex_t *mutex;
-  int             owner_idx;
 };
 
 struct rxtx_ring {
