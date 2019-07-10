@@ -12,6 +12,10 @@
 
 #include "rxtx.h"
 
+#include "rxtx_error.h"    // for RXTX_ERRBUF_SIZE, RXTX_ERROR
+#include "rxtx_savefile.h" // for rxtx_savefile_close(), rxtx_savefile_dump(),
+                           //     rxtx_savefile_open()
+
 #include "ext.h"       // for ext(), noext_copy()
 #include "interface.h" // for interface_set_promisc_on()
 #include "sig.h"       // for keep_running
@@ -30,10 +34,7 @@
 #include <sys/time.h>        // for timeval
 
 #include <errno.h>    // for errno
-#include <pcap.h>     // for bpf_u_int32, DLT_EN10MB, pcap_close(),
-                      //     pcap_dump(), pcap_dump_close(), pcap_dump_flush(),
-                      //     pcap_dump_open(), pcap_geterr(), pcap_open_dead(),
-                      //     pcap_pkthdr
+#include <pcap.h>     // for bpf_u_int32, pcap_pkthdr
 #include <pthread.h>  // for pthread_mutex_destroy(), pthread_mutex_init(),
                       //     pthread_mutex_lock(), pthread_mutex_unlock(),
                       //     pthread_self()
@@ -48,17 +49,15 @@
 #define EXIT_FAIL 1
 
 #define PACKET_BUFFER_SIZE 65535
-#define SNAPLEN 65535
 
 #define packet_direction_is_rx(sll) (!packet_direction_is_tx(sll))
 #define packet_direction_is_tx(sll) ((sll)->sll_pkttype == PACKET_OUTGOING)
 
+char errbuf[RXTX_ERRBUF_SIZE] = "";
 char *program_basename = NULL;
 
 static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args);
 static void rxtx_desc_destroy(struct rxtx_desc *p);
-static void rxtx_pcap_init(struct rxtx_pcap *p, char *filename);
-static void rxtx_pcap_destroy(struct rxtx_pcap *p);
 static void
 rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx);
 static void rxtx_ring_destroy(struct rxtx_ring *p);
@@ -159,9 +158,10 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
     }
 
     if (args->pcap_filename) {
-      p->rings[i].pcap = calloc(1, sizeof(*p->rings[i].pcap));
+      p->rings[i].savefile = calloc(1, sizeof(*p->rings[i].savefile));
 
       char *filename;
+      int status;
 
       if (strcmp(args->pcap_filename, "-") == 0) {
         filename = strdup(args->pcap_filename);
@@ -177,8 +177,12 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
         free(copy);
       }
 
-      rxtx_pcap_init(p->rings[i].pcap, filename);
+      status = rxtx_savefile_open(p->rings[i].savefile, filename, errbuf);
       free(filename);
+      if (status == RXTX_ERROR) {
+        fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+        exit(EXIT_FAIL);
+      }
     }
   }
 
@@ -221,42 +225,6 @@ static void rxtx_desc_destroy(struct rxtx_desc *p) {
   free(p->rings);
   p->rings = NULL;
   p->args = NULL;
-}
-
-static void rxtx_pcap_init(struct rxtx_pcap *p, char *filename) {
-  p->filename = strdup(filename);
-  p->desc = pcap_open_dead(DLT_EN10MB, SNAPLEN);
-
-  if ((p->fp = pcap_dump_open(p->desc, p->filename)) == NULL) {
-    fprintf(
-      stderr,
-      "%s: Error opening dump file '%s' for writing: %s\n",
-      program_basename,
-      p->filename,
-      pcap_geterr(p->desc)
-    );
-    exit(EXIT_FAIL);
-  }
-}
-
-static void rxtx_pcap_destroy(struct rxtx_pcap *p) {
-  /* protect against silent write failures */
-  if ((pcap_dump_flush(p->fp)) == -1) {
-    fprintf(
-      stderr,
-      "%s: Error writing to dump file '%s'.\n",
-      program_basename,
-      p->filename
-    );
-    exit(EXIT_FAIL);
-  }
-
-  pcap_dump_close(p->fp);
-  p->fp = NULL;
-  pcap_close(p->desc);
-  p->desc = NULL;
-  free(p->filename);
-  p->filename = NULL;
 }
 
 static void
@@ -371,11 +339,15 @@ static void rxtx_ring_destroy(struct rxtx_ring *p) {
   free(p->stats);
   p->stats = NULL;
   p->rtd = NULL;
-  if (p->pcap) {
-    rxtx_pcap_destroy(p->pcap);
-    free(p->pcap);
+  if (p->savefile) {
+    int status = rxtx_savefile_close(p->savefile);
+    free(p->savefile);
+    if (status == RXTX_ERROR) {
+      fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+      exit(EXIT_FAIL);
+    }
   }
-  p->pcap = NULL;
+  p->savefile = NULL;
   p->idx = 0;
 }
 
@@ -420,7 +392,7 @@ int rxtx_close(struct rxtx_desc *rtd) {
 void *rxtx_loop(void *r) {
   struct rxtx_ring *ring = r;
   struct rxtx_desc *rtd = ring->rtd;
-  struct rxtx_pcap *pcap = ring->pcap;
+  struct rxtx_savefile *savefile = ring->savefile;
   struct rxtx_args *args = rtd->args;
 
   if (args->verbose) {
@@ -481,7 +453,7 @@ void *rxtx_loop(void *r) {
 
     rxtx_increment_counters(ring);
 
-    if (pcap) {
+    if (savefile) {
       /* no need for memset(), we're initializing every member */
       struct pcap_pkthdr pcap_packet_header;
       pcap_packet_header.caplen     = (bpf_u_int32)packet_length;
@@ -489,18 +461,12 @@ void *rxtx_loop(void *r) {
       pcap_packet_header.ts.tv_sec  = time(NULL);
       pcap_packet_header.ts.tv_usec = 0;
 
-      pcap_dump((unsigned char *)pcap->fp, &pcap_packet_header, packet_buffer);
+      int status;
+      status = rxtx_savefile_dump(savefile, &pcap_packet_header, packet_buffer, args->packet_buffered);
 
-      if (args->packet_buffered) {
-        if ((pcap_dump_flush(pcap->fp)) == -1) {
-          fprintf(
-            stderr,
-            "%s: Error writing to dump file '%s'.\n",
-            program_basename,
-            pcap->filename
-          );
-          exit(EXIT_FAIL);
-        }
+      if (status == RXTX_ERROR) {
+        fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+        exit(EXIT_FAIL);
       }
     }
   }

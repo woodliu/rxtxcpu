@@ -11,7 +11,8 @@
 #ifndef _RXTX_H_
 #define _RXTX_H_
 
-#include <pcap.h>    // for pcap_dumper_t, pcap_t
+#include "rxtx_savefile.h" // for rxtx_savefile
+
 #include <pthread.h> // for pthread_mutex_t
 #include <sched.h>   // for cpu_set_t
 #include <stdbool.h> // for bool
@@ -49,15 +50,9 @@ struct rxtx_desc {
   int               fanout_group_id;
 };
 
-struct rxtx_pcap {
-  pcap_t          *desc;
-  char            *filename;
-  pcap_dumper_t   *fp;
-};
-
 struct rxtx_ring {
-  struct rxtx_pcap  *pcap;
   struct rxtx_desc  *rtd;
+  struct rxtx_savefile *savefile;
   struct rxtx_stats *stats;
   int               idx;
   int               fd;

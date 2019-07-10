@@ -42,6 +42,7 @@ txcpu
 # Testing files
 /Gemfile.lock
 /tmp/
+test__*__failure
 
 # Vagrant
 /.vagrant/
