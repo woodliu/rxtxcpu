@@ -24,7 +24,7 @@ int main(void) {
   status = rxtx_savefile_close(&rtp);
   assert(status == -1);
 
-  status = strcmp(errbuf, "error writing to savefile '/dev/null'");
+  status = strcmp(errbuf, "error writing to savefile '/dev/null': No space left on device");
   assert(status == 0);
 
   return 0;

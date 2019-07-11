@@ -9,12 +9,13 @@
 #include "rxtx_savefile.h"
 #include "rxtx_error.h" // for RXTX_ERROR, rxtx_fill_errbuf()
 
+#include <errno.h>  // for errno
 #include <pcap.h>   // for DLT_EN10MB, pcap_close(), pcap_dump(),
                     //     pcap_dump_close(), pcap_dump_flush(),
                     //     pcap_dump_open(), PCAP_ERROR, pcap_geterr(),
                     //     pcap_open_dead(), pcap_pkthdr
 #include <stdlib.h> // for free()
-#include <string.h> // for strdup()
+#include <string.h> // for strdup(), strerror()
 
 #define SNAPLEN 65535
 
@@ -47,7 +48,10 @@ int rxtx_savefile_dump(struct rxtx_savefile *p, struct pcap_pkthdr *header, u_ch
 
   if (flush) {
     if (pcap_dump_flush(p->pdd) == PCAP_ERROR) {
-      rxtx_fill_errbuf(p->errbuf, "error writing to savefile '%s'", p->name);
+      /*
+       * pcap_dump_flush() only returns PCAP_ERROR when fflush() returns EOF; errno should be set.
+       */
+      rxtx_fill_errbuf(p->errbuf, "error writing to savefile '%s': %s", p->name, strerror(errno));
       return RXTX_ERROR;
     }
   }
@@ -62,7 +66,10 @@ int rxtx_savefile_close(struct rxtx_savefile *p) {
    * protect against silent write failures
    */
   if ((pcap_dump_flush(p->pdd)) == PCAP_ERROR) {
-    rxtx_fill_errbuf(p->errbuf, "error writing to savefile '%s'", p->name);
+    /*
+     * pcap_dump_flush() only returns PCAP_ERROR when fflush() returns EOF; errno should be set.
+     */
+    rxtx_fill_errbuf(p->errbuf, "error writing to savefile '%s': %s", p->name, strerror(errno));
     status = RXTX_ERROR;
   }
 

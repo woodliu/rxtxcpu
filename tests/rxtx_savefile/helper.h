@@ -23,7 +23,11 @@
 #endif
 
 #ifdef TEST_PCAP_DUMP_FLUSH_FAILURE
+  #include <errno.h> // for ENOSPC
+
   #define pcap_dump_flush(...) -1
+  #undef errno
+  #define errno ENOSPC
 #endif
 
 #endif // _TEST_RXTX_SAVEFILE_HELPER_H_

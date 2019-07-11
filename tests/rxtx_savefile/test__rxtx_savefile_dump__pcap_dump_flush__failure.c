@@ -49,7 +49,7 @@ int main(void) {
   status = rxtx_savefile_dump(&rtp, &header, packet, 1);
   assert(status == -1);
 
-  status = strcmp(errbuf, "error writing to savefile '/dev/null'");
+  status = strcmp(errbuf, "error writing to savefile '/dev/null': No space left on device");
   assert(status == 0);
 
   rxtx_savefile_close(&rtp);
