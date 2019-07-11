@@ -16,7 +16,7 @@ cpu.o rxtx.o: EXTRA_CFLAGS = \
 %.o: %.c
 	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -c -o $@ $<
 
-rxtxcpu rxcpu txcpu: cpu.o ext.o interface.o rxtx.o rxtxcpu.o sig.o
+rxtxcpu rxcpu txcpu: cpu.o ext.o interface.o rxtx.o rxtx_savefile.o rxtxcpu.o sig.o
 	$(CC) $(CFLAGS) -o rxtxcpu $^ -lpcap -lpthread
 	rm -f rxcpu txcpu
 	ln -s rxtxcpu rxcpu
@@ -24,7 +24,7 @@ rxtxcpu rxcpu txcpu: cpu.o ext.o interface.o rxtx.o rxtxcpu.o sig.o
 
 .PHONY: clean
 clean:
-	rm -f cpu.o ext.o interface.o rxtx.o rxtxcpu.o sig.o rxtxcpu rxcpu txcpu
+	rm -f cpu.o ext.o interface.o rxtx.o rxtx_savefile.o rxtxcpu.o sig.o rxtxcpu rxcpu txcpu
 
 .PHONY: install
 install: rxtxcpu rxcpu txcpu
