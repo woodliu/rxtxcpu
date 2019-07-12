@@ -24,7 +24,7 @@ int main(void) {
   status = rxtx_stats_mutex_init(&rts);
   assert(status == -1);
 
-  status = strcmp(errbuf, "error initializing stats mutex");
+  status = strcmp(errbuf, "error initializing stats mutex: Device or resource busy");
   assert(status == 0);
 
   rxtx_stats_destroy(&rts);

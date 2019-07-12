@@ -9,10 +9,12 @@
 #ifndef _TEST_RXTX_STATS_HELPER_H_
 #define _TEST_RXTX_STATS_HELPER_H_
 
-#include <errno.h> // for EBUSY, EINVAL
+#include <errno.h> // for EBUSY, EINVAL, ENOMEM
 
 #ifdef TEST_CALLOC_FAILURE
   #define calloc(...) NULL
+  #undef errno
+  #define errno ENOMEM
 #endif
 
 #ifdef TEST_PTHREAD_MUTEX_INIT_FAILURE

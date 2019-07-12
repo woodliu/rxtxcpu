@@ -27,7 +27,7 @@ int main(void) {
   status = rxtx_stats_increment_packets_received(&rts, 1);
   assert(status == -1);
 
-  status = strcmp(errbuf, "error locking stats mutex");
+  status = strcmp(errbuf, "error locking stats mutex: Invalid argument");
   assert(status == 0);
 
   rxtx_stats_mutex_destroy(&rts);
