@@ -1,0 +1,53 @@
+CC = gcc
+CFLAGS = -Wall -Wcast-align -Wcast-qual -Wimplicit -Wpointer-arith -Wredundant-decls -Wreturn-type -Wshadow
+
+.PHONY: all
+all: \
+  test__rxtx_stats_mutex_init__calloc__failure \
+  test__rxtx_stats_mutex_init__pthread_mutex_init__failure \
+  test__rxtx_stats_mutex_destroy__pthread_mutex_destroy__failure \
+  test__rxtx_stats_increment_packets_received__pthread_mutex_lock__failure \
+  test__rxtx_stats_increment_packets_received__pthread_mutex_unlock__failure \
+  test__rxtx_stats_increment_packets_unreliable__pthread_mutex_lock__failure \
+  test__rxtx_stats_increment_packets_unreliable__pthread_mutex_unlock__failure
+
+test__rxtx_stats_mutex_init__calloc__failure: EXTRA_CFLAGS = \
+	-DTEST_CALLOC_FAILURE
+
+test__rxtx_stats_mutex_init__pthread_mutex_init__failure: EXTRA_CFLAGS = \
+	-DTEST_PTHREAD_MUTEX_INIT_FAILURE
+
+test__rxtx_stats_mutex_destroy__pthread_mutex_destroy__failure: EXTRA_CFLAGS = \
+	-DTEST_PTHREAD_MUTEX_DESTROY_FAILURE
+
+test__rxtx_stats_increment_packets_received__pthread_mutex_lock__failure \
+  test__rxtx_stats_increment_packets_unreliable__pthread_mutex_lock__failure: EXTRA_CFLAGS = \
+	-DTEST_PTHREAD_MUTEX_LOCK_FAILURE
+
+test__rxtx_stats_increment_packets_received__pthread_mutex_unlock__failure \
+  test__rxtx_stats_increment_packets_unreliable__pthread_mutex_unlock__failure: EXTRA_CFLAGS = \
+	-DTEST_PTHREAD_MUTEX_UNLOCK_FAILURE
+
+%: %.c ../../rxtx_stats.c
+	$(CC) $(CFLAGS) $(EXTRA_CFLAGS) -o $@ $^ -lpthread -DTESTING
+
+.PHONY: test
+test: all
+	./test__rxtx_stats_mutex_init__calloc__failure
+	./test__rxtx_stats_mutex_init__pthread_mutex_init__failure
+	./test__rxtx_stats_mutex_destroy__pthread_mutex_destroy__failure
+	./test__rxtx_stats_increment_packets_received__pthread_mutex_lock__failure
+	./test__rxtx_stats_increment_packets_received__pthread_mutex_unlock__failure
+	./test__rxtx_stats_increment_packets_unreliable__pthread_mutex_lock__failure
+	./test__rxtx_stats_increment_packets_unreliable__pthread_mutex_unlock__failure
+
+.PHONY: clean
+clean:
+	rm -f \
+	  test__rxtx_stats_mutex_init__calloc__failure \
+	  test__rxtx_stats_mutex_init__pthread_mutex_init__failure \
+	  test__rxtx_stats_mutex_destroy__pthread_mutex_destroy__failure \
+	  test__rxtx_stats_increment_packets_received__pthread_mutex_lock__failure \
+	  test__rxtx_stats_increment_packets_received__pthread_mutex_unlock__failure \
+	  test__rxtx_stats_increment_packets_unreliable__pthread_mutex_lock__failure \
+	  test__rxtx_stats_increment_packets_unreliable__pthread_mutex_unlock__failure

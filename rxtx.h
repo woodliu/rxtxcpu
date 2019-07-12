@@ -12,6 +12,7 @@
 #define _RXTX_H_
 
 #include "rxtx_savefile.h" // for rxtx_savefile
+#include "rxtx_stats.h"    // for rxtx_stats
 
 #include <pthread.h> // for pthread_mutex_t
 #include <sched.h>   // for cpu_set_t
@@ -25,7 +26,6 @@ extern char *program_basename;
 struct rxtx_args;
 struct rxtx_desc;
 struct rxtx_ring;
-struct rxtx_stats;
 
 struct rxtx_args {
   bool      capture_rx;
@@ -56,12 +56,6 @@ struct rxtx_ring {
   int               idx;
   int               fd;
   unsigned int      unreliable_packet_count;
-};
-
-struct rxtx_stats {
-  uintmax_t       packets_received;
-  unsigned int    packets_unreliable;
-  pthread_mutex_t *mutex;
 };
 
 int rxtx_close(struct rxtx_desc *rtd);
