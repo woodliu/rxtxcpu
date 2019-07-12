@@ -15,6 +15,14 @@
 #include "rxtx_error.h"    // for RXTX_ERRBUF_SIZE, RXTX_ERROR
 #include "rxtx_savefile.h" // for rxtx_savefile_close(), rxtx_savefile_dump(),
                            //     rxtx_savefile_open()
+#include "rxtx_stats.h"    // for rxtx_stats_destroy(),
+                           //     rxtx_stats_destroy_with_mutex(),
+                           //     rxtx_stats_get_packets_received(),
+                           //     rxtx_stats_get_packets_unreliable(),
+                           //     rxtx_stats_increment_packets_received(),
+                           //     rxtx_stats_increment_packets_unreliable(),
+                           //     rxtx_stats_init(),
+                           //     rxtx_stats_init_with_mutex()
 
 #include "ext.h"       // for ext(), noext_copy()
 #include "interface.h" // for interface_set_promisc_on()
@@ -35,9 +43,7 @@
 
 #include <errno.h>    // for errno
 #include <pcap.h>     // for bpf_u_int32, pcap_pkthdr
-#include <pthread.h>  // for pthread_mutex_destroy(), pthread_mutex_init(),
-                      //     pthread_mutex_lock(), pthread_mutex_unlock(),
-                      //     pthread_self()
+#include <pthread.h>  // for pthread_self()
 #include <sched.h>    // for sched_getcpu()
 #include <stdbool.h>  // for true
 #include <stdio.h>    // for asprintf(), fprintf(), NULL, stderr, stdout
@@ -47,6 +53,8 @@
 #include <unistd.h>   // for getpid()
 
 #define EXIT_FAIL 1
+
+#define INCREMENT_STEP 1
 
 #define PACKET_BUFFER_SIZE 65535
 
@@ -61,15 +69,21 @@ static void rxtx_desc_destroy(struct rxtx_desc *p);
 static void
 rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx);
 static void rxtx_ring_destroy(struct rxtx_ring *p);
-static void rxtx_stats_init(struct rxtx_stats *p);
-static void rxtx_stats_destroy(struct rxtx_stats *p);
 static void rxtx_increment_counters(struct rxtx_ring *ring);
 
 static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
+  int status;
+
   p->args = args;
   p->rings = calloc(args->ring_count, sizeof(*p->rings));
   p->stats = calloc(1, sizeof(*p->stats));
-  rxtx_stats_init(p->stats);
+
+  status = rxtx_stats_init_with_mutex(p->stats, errbuf);
+  if (status == RXTX_ERROR) {
+    fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+    exit(EXIT_FAIL);
+  }
+
   p->ifindex = 0;
   p->fanout_group_id = 0;
 
@@ -161,7 +175,6 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
       p->rings[i].savefile = calloc(1, sizeof(*p->rings[i].savefile));
 
       char *filename;
-      int status;
 
       if (strcmp(args->pcap_filename, "-") == 0) {
         filename = strdup(args->pcap_filename);
@@ -216,7 +229,7 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
 static void rxtx_desc_destroy(struct rxtx_desc *p) {
   p->fanout_group_id = 0;
   p->ifindex = 0;
-  rxtx_stats_destroy(p->stats);
+  rxtx_stats_destroy_with_mutex(p->stats);
   free(p->stats);
   p->stats = NULL;
   for (int i = 0; i < p->args->ring_count; i++) {
@@ -231,7 +244,7 @@ static void
 rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx) {
   p->rtd = rtd;
   p->stats = calloc(1, sizeof(*p->stats));
-  rxtx_stats_init(p->stats);
+  rxtx_stats_init(p->stats, errbuf);
   p->idx = ring_idx;
   p->fd = -1;
   p->unreliable_packet_count = 0;
@@ -351,32 +364,9 @@ static void rxtx_ring_destroy(struct rxtx_ring *p) {
   p->idx = 0;
 }
 
-static void rxtx_stats_init(struct rxtx_stats *p) {
-  p->packets_received = 0;
-  p->packets_unreliable = 0;
-  p->mutex = calloc(1, sizeof(*p->mutex));
-  if (pthread_mutex_init(p->mutex, NULL) != 0) {
-    fprintf(
-      stderr,
-      "%s: Error initializing mutex for stats.\n",
-      program_basename
-    );
-    exit(EXIT_FAIL);
-  }
-}
-
-static void rxtx_stats_destroy(struct rxtx_stats *p) {
-  pthread_mutex_destroy(p->mutex);
-  free(p->mutex);
-  p->mutex = NULL;
-  p->packets_received = 0;
-}
-
 static void rxtx_increment_counters(struct rxtx_ring *ring) {
-  pthread_mutex_lock(ring->rtd->stats->mutex);
-  ring->rtd->stats->packets_received++;
-  pthread_mutex_unlock(ring->rtd->stats->mutex);
-  ring->stats->packets_received++;
+  rxtx_stats_increment_packets_received(ring->rtd->stats, INCREMENT_STEP);
+  rxtx_stats_increment_packets_received(ring->stats, INCREMENT_STEP);
 }
 
 int rxtx_open(struct rxtx_desc *rtd, struct rxtx_args *args) {
@@ -409,7 +399,7 @@ void *rxtx_loop(void *r) {
   while (keep_running) {
 
     if (args->packet_count &&
-        rtd->stats->packets_received >= args->packet_count) {
+        rxtx_stats_get_packets_received(rtd->stats) >= args->packet_count) {
       break;
     }
 
@@ -438,8 +428,8 @@ void *rxtx_loop(void *r) {
      * Otherwise, this packet should be seen as unreliable.
      */
     if (!seen_empty_ring &&
-        ring->stats->packets_unreliable < ring->unreliable_packet_count) {
-      ring->stats->packets_unreliable++;
+        rxtx_stats_get_packets_unreliable(ring->stats) < ring->unreliable_packet_count) {
+      rxtx_stats_increment_packets_unreliable(ring->stats, INCREMENT_STEP);
       continue;
     }
 
