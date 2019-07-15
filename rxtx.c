@@ -72,7 +72,7 @@ static void rxtx_ring_destroy(struct rxtx_ring *p);
 static void rxtx_increment_counters(struct rxtx_ring *ring);
 
 static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
-  int status;
+  int i, status;
 
   p->args = args;
   p->rings = calloc(args->ring_count, sizeof(*p->rings));
@@ -159,18 +159,17 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
   }
 
   /*
-   * This loop creates our rings, including per-ring socket fds and pcap
-   * filenames. We need the instantiation order to follow ring index order.
-   *
-   * This needs to happen after we have our ifindex and have enabled
-   * promiscuous mode if requested.
+   * This loop creates our rings, including per-ring socket fds. We need the
+   * instantiation order to follow ring index order.
    */
-  for (int i = 0; i < args->ring_count; i++) {
+  for_each_ring(i, p) {
     rxtx_ring_init(&(p->rings[i]), p, i);
-    if (!CPU_ISSET(i, &(args->ring_set))) {
-      continue;
-    }
+  }
 
+  /*
+   * Open savefiles only for rings on which we're capturing.
+   */
+  for_each_set_ring(i, p) {
     if (args->pcap_filename) {
       p->rings[i].savefile = calloc(1, sizeof(*p->rings[i].savefile));
 
@@ -210,7 +209,7 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
    * Regardless of the reason for the packets being unreliable, we want to skip
    * them and knowing their quantity is one way to do so.
    */
-  for (int i = 0; i < args->ring_count; i++) {
+  for_each_set_ring(i, p) {
     struct tpacket_stats stats;
     socklen_t len = sizeof(stats);
     if (getsockopt(p->rings[i].fd, SOL_PACKET, PACKET_STATISTICS, &stats, &len) < 0 ) {
@@ -227,12 +226,14 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
 }
 
 static void rxtx_desc_destroy(struct rxtx_desc *p) {
+  int i;
+
   p->fanout_group_id = 0;
   p->ifindex = 0;
   rxtx_stats_destroy_with_mutex(p->stats);
   free(p->stats);
   p->stats = NULL;
-  for (int i = 0; i < p->args->ring_count; i++) {
+  for_each_ring(i, p) {
     rxtx_ring_destroy(&(p->rings[i]));
   }
   free(p->rings);
