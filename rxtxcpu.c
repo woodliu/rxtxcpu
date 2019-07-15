@@ -37,7 +37,6 @@
 #define EXIT_FAIL_OPTION 2
 
 #define OPTION_COUNT_BASE 10
-#define OPTION_CPU_LIST_BASE 10
 
 static const struct option long_options[] = {
   {"count",           required_argument, NULL, 'c'},
