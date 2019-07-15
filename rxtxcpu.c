@@ -8,11 +8,13 @@
 
 #define _GNU_SOURCE // for GNU basename()
 
-#include "cpu.h"  // for get_online_cpu_set(), parse_cpu_list(),
-                  //     parse_cpu_mask()
-#include "rxtx.h" // for program_basename, rxtx_args, rxtx_desc, rxtx_close(),
-                  //     rxtx_loop(), rxtx_open()
-#include "sig.h"  // for setup_signals()
+#include "cpu.h"      // for get_online_cpu_set(), parse_cpu_list(),
+                      //     parse_cpu_mask()
+#include "ring_set.h" // for for_each_ring_in_size(), RING_CLR(), RING_COUNT(),
+                      //     RING_ISSET(), RING_SET()
+#include "rxtx.h"     // for for_each_set_ring(), program_basename, rxtx_args,
+                      //     rxtx_desc, rxtx_close(), rxtx_loop(), rxtx_open()
+#include "sig.h"      // for setup_signals()
 
 #include <linux/if_packet.h> // for PACKET_FANOUT_CPU
 
@@ -21,8 +23,8 @@
 #include <pthread.h>  // for pthread_attr_destroy(), pthread_attr_init(),
                       //     pthread_attr_setaffinity_np(), pthread_attr_t,
                       //     pthread_create(), pthread_join(), pthread_t
-#include <sched.h>    // for CPU_CLR(), CPU_COUNT(), CPU_ISSET(), CPU_SET(),
-                      //     cpu_set_t
+#include <sched.h>    // for CPU_COUNT(), CPU_ISSET(), CPU_SET(), cpu_set_t,
+                      //     CPU_ZERO()
 #include <stdbool.h>  // for bool, false, true
 #include <stdio.h>    // for asprintf(), FILE, fprintf(), fputs(), NULL,
                       //     printf(), puts(), stderr, stdout
@@ -99,6 +101,7 @@ static void usage_short(void) {
 
 int main(int argc, char **argv) {
   program_basename = basename(argv[0]);
+  int i;
   struct rxtx_args args;
   memset(&args, 0, sizeof(args));
 
@@ -293,15 +296,15 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Found '%d' processors.\n", args.ring_count);
   }
 
-  if (CPU_COUNT(&(args.ring_set)) == 0) {
-    for (int i = 0; i < args.ring_count; i++) {
-      CPU_SET(i, &(args.ring_set));
+  if (RING_COUNT(&(args.ring_set)) == 0) {
+    for_each_ring_in_size(i, args.ring_count) {
+      RING_SET(i, &(args.ring_set));
     }
   }
 
   int worker_count = 0;
-  for (int i = 0; i < args.ring_count; i++) {
-    if (CPU_ISSET(i, &(args.ring_set))) {
+  for_each_ring_in_size(i, args.ring_count) {
+    if (RING_ISSET(i, &(args.ring_set))) {
       worker_count++;
     }
   }
@@ -323,9 +326,9 @@ int main(int argc, char **argv) {
   }
 
   if (CPU_COUNT(&online_cpu_set) != args.ring_count) {
-    for (int i = 0; i < args.ring_count; i++) {
+    for_each_ring_in_size(i, args.ring_count) {
       if (!CPU_ISSET(i, &online_cpu_set)) {
-        CPU_CLR(i, &(args.ring_set));
+        RING_CLR(i, &(args.ring_set));
         if (args.verbose) {
           fprintf(stderr, "Skipping cpu '%d' since it is offline.\n", i);
         }
@@ -334,8 +337,8 @@ int main(int argc, char **argv) {
   }
 
   worker_count = 0;
-  for (int i = 0; i < args.ring_count; i++) {
-    if (CPU_ISSET(i, &(args.ring_set))) {
+  for_each_ring_in_size(i, args.ring_count) {
+    if (RING_ISSET(i, &(args.ring_set))) {
       worker_count++;
     }
   }
@@ -352,7 +355,7 @@ int main(int argc, char **argv) {
 
   if (args.pcap_filename &&
       strcmp(args.pcap_filename, "-") == 0 &&
-      CPU_COUNT(&(args.ring_set)) != 1) {
+      RING_COUNT(&(args.ring_set)) != 1) {
     fprintf(
       stderr,
       "%s: Write file '%s' (stdout) is only permitted when capturing on a single cpu.\n",
@@ -397,10 +400,7 @@ int main(int argc, char **argv) {
   pthread_attr_t attr;
   pthread_attr_init(&attr);
 
-  for (int i = 0; i < args.ring_count; i++) {
-    if (!CPU_ISSET(i, &(args.ring_set))) {
-      continue;
-    }
+  for_each_set_ring(i, &rtd) {
     CPU_ZERO(&cpu_set);
     CPU_SET(i, &cpu_set);
     pthread_attr_setaffinity_np(&attr, sizeof(cpu_set), &cpu_set);
@@ -416,10 +416,7 @@ int main(int argc, char **argv) {
       strcmp(args.pcap_filename, "-") == 0) {
     out = stderr;
   }
-  for (int i = 0; i < args.ring_count; i++) {
-    if (!CPU_ISSET(i, &(args.ring_set))) {
-      continue;
-    }
+  for_each_set_ring(i, &rtd) {
     pthread_join(threads[i], NULL);
     fprintf(
       out,

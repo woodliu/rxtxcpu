@@ -14,12 +14,21 @@
 #include "rxtx_savefile.h" // for rxtx_savefile
 #include "rxtx_stats.h"    // for rxtx_stats
 
+#include "ring_set.h" // for for_each_ring_in_size(),
+                      //     for_each_set_ring_in_size()
+
 #include <pthread.h> // for pthread_mutex_t
 #include <sched.h>   // for cpu_set_t
 #include <stdbool.h> // for bool
 #include <stdint.h>  // for uintmax_t
 
 #define NO_PACKET_FANOUT -1
+
+#define for_each_ring(ring, rtd) \
+  for_each_ring_in_size((ring), (rtd)->args->ring_count)
+
+#define for_each_set_ring(ring, rtd) \
+  for_each_set_ring_in_size((ring), &((rtd)->args->ring_set), (rtd)->args->ring_count)
 
 extern char *program_basename;
 
