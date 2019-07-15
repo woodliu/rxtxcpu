@@ -167,6 +167,32 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
   }
 
   /*
+   * Any packets which were enqueued before all socket(), bind(), and
+   * setsockopt() operations were completed for our rings should be considered
+   * unreliable. These packets could be from another interface (due to being
+   * enqueued before bind() set the ifindex) or these packets could belong to
+   * another ring (due to being enqueued before all fds are added to our fanout
+   * group).
+   *
+   * Regardless of the reason for the packets being unreliable, we want to skip
+   * them and knowing their quantity is one way to do so.
+   */
+  for_each_set_ring(i, p) {
+    struct tpacket_stats stats;
+    socklen_t len = sizeof(stats);
+    if (getsockopt(p->rings[i].fd, SOL_PACKET, PACKET_STATISTICS, &stats, &len) < 0 ) {
+      fprintf(
+        stderr,
+        "%s: Failed to get packet statistics: %s\n",
+        program_basename,
+        strerror(errno)
+      );
+      exit(EXIT_FAIL);
+    }
+    p->rings[i].unreliable_packet_count = stats.tp_packets - stats.tp_drops;
+  }
+
+  /*
    * Open savefiles only for rings on which we're capturing.
    */
   for_each_set_ring(i, p) {
@@ -196,32 +222,6 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
         exit(EXIT_FAIL);
       }
     }
-  }
-
-  /*
-   * Any packets which were enqueued before all socket(), bind(), and
-   * setsockopt() operations were completed for our rings should be considered
-   * unreliable. These packets could be from another interface (due to being
-   * enqueued before bind() set the ifindex) or these packets could belong to
-   * another ring (due to being enqueued before all fds are added to our fanout
-   * group).
-   *
-   * Regardless of the reason for the packets being unreliable, we want to skip
-   * them and knowing their quantity is one way to do so.
-   */
-  for_each_set_ring(i, p) {
-    struct tpacket_stats stats;
-    socklen_t len = sizeof(stats);
-    if (getsockopt(p->rings[i].fd, SOL_PACKET, PACKET_STATISTICS, &stats, &len) < 0 ) {
-      fprintf(
-        stderr,
-        "%s: Failed to get packet statistics: %s\n",
-        program_basename,
-        strerror(errno)
-      );
-      exit(EXIT_FAIL);
-    }
-    p->rings[i].unreliable_packet_count = stats.tp_packets - stats.tp_drops;
   }
 }
 
