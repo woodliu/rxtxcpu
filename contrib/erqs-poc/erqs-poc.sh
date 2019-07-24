@@ -183,4 +183,4 @@ done
 
 echo "src_port: $src_port"
 
-curl --local-port "$src_port" "$url"
+curl --local-port "$src_port" --resolve "$hostname:$dst_port:$dst_ip" "$url"
