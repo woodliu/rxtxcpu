@@ -81,6 +81,14 @@ uintmax_t rxtx_stats_get_packets_unreliable(struct rxtx_stats *p) {
   return p->packets_unreliable;
 }
 
+uintmax_t rxtx_stats_get_tp_packets(struct rxtx_stats *p) {
+  return p->tp_packets;
+}
+
+uintmax_t rxtx_stats_get_tp_drops(struct rxtx_stats *p) {
+  return p->tp_drops;
+}
+
 int rxtx_stats_increment_packets_received(struct rxtx_stats *p, int step) {
   int status;
 
@@ -117,6 +125,54 @@ int rxtx_stats_increment_packets_unreliable(struct rxtx_stats *p, int step) {
   }
 
   p->packets_unreliable += step;
+
+  if (p->mutex) {
+    status = pthread_mutex_unlock(p->mutex);
+    if (status) {
+      rxtx_fill_errbuf(p->errbuf, "error unlocking stats mutex: %s", strerror(status));
+      return RXTX_ERROR;
+    }
+  }
+
+  return 0;
+}
+
+int rxtx_stats_increment_tp_packets(struct rxtx_stats *p, int step) {
+  int status;
+
+  if (p->mutex) {
+    status = pthread_mutex_lock(p->mutex);
+    if (status) {
+      rxtx_fill_errbuf(p->errbuf, "error locking stats mutex: %s", strerror(status));
+      return RXTX_ERROR;
+    }
+  }
+
+  p->tp_packets += step;
+
+  if (p->mutex) {
+    status = pthread_mutex_unlock(p->mutex);
+    if (status) {
+      rxtx_fill_errbuf(p->errbuf, "error unlocking stats mutex: %s", strerror(status));
+      return RXTX_ERROR;
+    }
+  }
+
+  return 0;
+}
+
+int rxtx_stats_increment_tp_drops(struct rxtx_stats *p, int step) {
+  int status;
+
+  if (p->mutex) {
+    status = pthread_mutex_lock(p->mutex);
+    if (status) {
+      rxtx_fill_errbuf(p->errbuf, "error locking stats mutex: %s", strerror(status));
+      return RXTX_ERROR;
+    }
+  }
+
+  p->tp_drops += step;
 
   if (p->mutex) {
     status = pthread_mutex_unlock(p->mutex);
