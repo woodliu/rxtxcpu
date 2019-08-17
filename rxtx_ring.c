@@ -23,8 +23,8 @@ int rxtx_ring_mark_packets_in_buffer_as_unreliable(struct rxtx_ring *p) {
     return RXTX_ERROR;
   }
 
-  p->unreliable_packet_count = rxtx_stats_get_tp_packets(p->stats)
-                                 - rxtx_stats_get_tp_drops(p->stats);
+  p->unreliable = rxtx_stats_get_tp_packets(p->stats)
+                    - rxtx_stats_get_tp_drops(p->stats);
 
   return 0;
 }

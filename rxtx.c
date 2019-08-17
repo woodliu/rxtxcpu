@@ -244,7 +244,7 @@ rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx, char *_
   rxtx_stats_init(p->stats, errbuf);
   p->idx = ring_idx;
   p->fd = -1;
-  p->unreliable_packet_count = 0;
+  p->unreliable = 0;
 
   if (rtd->args->fanout_mode != NO_PACKET_FANOUT) {
     /*
@@ -426,7 +426,7 @@ void *rxtx_loop(void *r) {
      * Otherwise, this packet should be seen as unreliable.
      */
     if (!seen_empty_ring &&
-        rxtx_stats_get_packets_unreliable(ring->stats) < ring->unreliable_packet_count) {
+        rxtx_stats_get_packets_unreliable(ring->stats) < ring->unreliable) {
       rxtx_stats_increment_packets_unreliable(ring->stats, INCREMENT_STEP);
       continue;
     }

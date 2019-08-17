@@ -64,7 +64,7 @@ struct rxtx_ring {
   struct rxtx_stats *stats;
   int               idx;
   int               fd;
-  unsigned int      unreliable_packet_count;
+  unsigned int      unreliable;
   char              *errbuf;
 };
 
