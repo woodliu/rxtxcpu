@@ -65,6 +65,7 @@ struct rxtx_ring {
   int               idx;
   int               fd;
   unsigned int      unreliable_packet_count;
+  char              *errbuf;
 };
 
 int rxtx_close(struct rxtx_desc *rtd);

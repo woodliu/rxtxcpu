@@ -13,6 +13,7 @@
 #include "rxtx.h"
 
 #include "rxtx_error.h"    // for RXTX_ERRBUF_SIZE, RXTX_ERROR
+#include "rxtx_ring.h"     // for rxtx_ring_update_tpacket_stats()
 #include "rxtx_savefile.h" // for rxtx_savefile_close(), rxtx_savefile_dump(),
                            //     rxtx_savefile_open()
 #include "rxtx_stats.h"    // for rxtx_stats_destroy(),
@@ -67,7 +68,7 @@ char *program_basename = NULL;
 static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args);
 static void rxtx_desc_destroy(struct rxtx_desc *p);
 static void
-rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx);
+rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx, char *_errbuf);
 static void rxtx_ring_destroy(struct rxtx_ring *p);
 static void rxtx_increment_counters(struct rxtx_ring *ring);
 
@@ -163,7 +164,7 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
    * instantiation order to follow ring index order.
    */
   for_each_ring(i, p) {
-    rxtx_ring_init(&(p->rings[i]), p, i);
+    rxtx_ring_init(&(p->rings[i]), p, i, errbuf);
   }
 
   /*
@@ -178,18 +179,15 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
    * them and knowing their quantity is one way to do so.
    */
   for_each_set_ring(i, p) {
-    struct tpacket_stats stats;
-    socklen_t len = sizeof(stats);
-    if (getsockopt(p->rings[i].fd, SOL_PACKET, PACKET_STATISTICS, &stats, &len) < 0 ) {
-      fprintf(
-        stderr,
-        "%s: Failed to get packet statistics: %s\n",
-        program_basename,
-        strerror(errno)
-      );
+    status = rxtx_ring_update_tpacket_stats(&(p->rings[i]));
+    if (status == RXTX_ERROR) {
+      fprintf(stderr, "%s: %s\n", program_basename, errbuf);
       exit(EXIT_FAIL);
     }
-    p->rings[i].unreliable_packet_count = stats.tp_packets - stats.tp_drops;
+
+    p->rings[i].unreliable_packet_count =
+      rxtx_stats_get_tp_packets(p->rings[i].stats)
+      - rxtx_stats_get_tp_drops(p->rings[i].stats);
   }
 
   /*
@@ -242,7 +240,8 @@ static void rxtx_desc_destroy(struct rxtx_desc *p) {
 }
 
 static void
-rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx) {
+rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx, char *_errbuf) {
+  p->errbuf = _errbuf;
   p->rtd = rtd;
   p->stats = calloc(1, sizeof(*p->stats));
   rxtx_stats_init(p->stats, errbuf);
@@ -363,6 +362,7 @@ static void rxtx_ring_destroy(struct rxtx_ring *p) {
   }
   p->savefile = NULL;
   p->idx = 0;
+  p->errbuf = NULL;
 }
 
 static void rxtx_increment_counters(struct rxtx_ring *ring) {
