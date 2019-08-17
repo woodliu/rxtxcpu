@@ -17,6 +17,18 @@
 #include <string.h> // for strerror()
 #include <errno.h>  // for errno
 
+int rxtx_ring_mark_packets_in_buffer_as_unreliable(struct rxtx_ring *p) {
+  int status = rxtx_ring_update_tpacket_stats(p);
+  if (status == RXTX_ERROR) {
+    return RXTX_ERROR;
+  }
+
+  p->unreliable_packet_count = rxtx_stats_get_tp_packets(p->stats)
+                                 - rxtx_stats_get_tp_drops(p->stats);
+
+  return 0;
+}
+
 int rxtx_ring_update_tpacket_stats(struct rxtx_ring *p) {
   int status = 0;
   struct tpacket_stats tp_stats;

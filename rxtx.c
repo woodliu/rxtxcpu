@@ -13,7 +13,7 @@
 #include "rxtx.h"
 
 #include "rxtx_error.h"    // for RXTX_ERRBUF_SIZE, RXTX_ERROR
-#include "rxtx_ring.h"     // for rxtx_ring_update_tpacket_stats()
+#include "rxtx_ring.h"     // for rxtx_ring_mark_packets_in_buffer_as_unreliable()
 #include "rxtx_savefile.h" // for rxtx_savefile_close(), rxtx_savefile_dump(),
                            //     rxtx_savefile_open()
 #include "rxtx_stats.h"    // for rxtx_stats_destroy(),
@@ -176,18 +176,15 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
    * group).
    *
    * Regardless of the reason for the packets being unreliable, we want to skip
-   * them and knowing their quantity is one way to do so.
+   * them in our workers and need to record which are unreliable sooner rather
+   * than later.
    */
   for_each_set_ring(i, p) {
-    status = rxtx_ring_update_tpacket_stats(&(p->rings[i]));
+    status = rxtx_ring_mark_packets_in_buffer_as_unreliable(&(p->rings[i]));
     if (status == RXTX_ERROR) {
       fprintf(stderr, "%s: %s\n", program_basename, errbuf);
       exit(EXIT_FAIL);
     }
-
-    p->rings[i].unreliable_packet_count =
-      rxtx_stats_get_tp_packets(p->rings[i].stats)
-      - rxtx_stats_get_tp_drops(p->rings[i].stats);
   }
 
   /*
