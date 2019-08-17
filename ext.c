@@ -12,8 +12,8 @@
 
 #include "ext.h"
 
-#include <stdlib.h> // for malloc()
-#include <string.h> // for GNU basename(), strcpy(), strlen(), strrchr()
+#include <stdio.h>  // for NULL
+#include <string.h> // for GNU basename(), strdup(), strlen(), strrchr()
 
 /* These functions are currently incompatible with the POSIX implementation of
  * basename(). We need the GNU implementation instead.
@@ -57,8 +57,10 @@ char *noext(char *path) {
 }
 
 char *noext_copy(const char *path) {
-  char *path_copy;
-  path_copy = malloc(strlen(path) + 1);
-  strcpy(path_copy, path);
-  return noext(path_copy);
+  char *copy;
+  copy = strdup(path);
+  if (!copy) {
+    return NULL;
+  }
+  return noext(copy);
 }
