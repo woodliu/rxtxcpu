@@ -28,6 +28,7 @@ struct rxtx_ring {
 
 int rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx, char *errbuf);
 int rxtx_ring_destroy(struct rxtx_ring *p);
+void rxtx_ring_clear_unreliable_packets_in_buffer(struct rxtx_ring *p);
 int rxtx_ring_mark_packets_in_buffer_as_unreliable(struct rxtx_ring *p);
 int rxtx_ring_savefile_open(struct rxtx_ring *p, const char *template);
 int rxtx_ring_update_tpacket_stats(struct rxtx_ring *p);

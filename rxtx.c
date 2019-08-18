@@ -13,7 +13,8 @@
 #include "rxtx.h"
 
 #include "rxtx_error.h"    // for RXTX_ERRBUF_SIZE, RXTX_ERROR
-#include "rxtx_ring.h"     // for rxtx_ring_destroy(),
+#include "rxtx_ring.h"     // for rxtx_ring_clear_unreliable_packets_in_buffer(),
+                           //     rxtx_ring_destroy(), rxtx_ring_init(),
                            //     rxtx_ring_mark_packets_in_buffer_as_unreliable(),
                            //     rxtx_ring_savefile_open()
 #include "rxtx_savefile.h" // for rxtx_savefile_dump()
@@ -239,7 +240,8 @@ void *rxtx_loop(void *r) {
     );
   }
 
-  int seen_empty_ring = 0;
+  rxtx_ring_clear_unreliable_packets_in_buffer(ring);
+
   while (keep_running) {
 
     if (args->packet_count &&
@@ -261,19 +263,6 @@ void *rxtx_loop(void *r) {
     );
 
     if (packet_length == -1) {
-      seen_empty_ring = 1;
-      continue;
-    }
-
-    /*
-     * If we've seen the ring buffer go empty, we know all unreliable packets
-     * have been skipped. Alternatively, if we've directly processed all
-     * unreliable packets, we know all unreliable packets have been skipped.
-     * Otherwise, this packet should be seen as unreliable.
-     */
-    if (!seen_empty_ring &&
-        rxtx_stats_get_packets_unreliable(ring->stats) < ring->unreliable) {
-      rxtx_stats_increment_packets_unreliable(ring->stats, INCREMENT_STEP);
       continue;
     }
 

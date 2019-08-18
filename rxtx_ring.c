@@ -13,10 +13,13 @@
 #include "rxtx_error.h"    // for RXTX_ERROR, rxtx_fill_errbuf()
 #include "rxtx_savefile.h" // for rxtx_savefile_close(), rxtx_savefile_open()
 #include "rxtx_stats.h"    // for rxtx_stats_destroy(),
+                           //     rxtx_stats_get_packets_unreliable(),
+                           //     rxtx_stats_increment_packets_unreliable(),
                            //     rxtx_stats_increment_tp_packets(),
                            //     rxtx_stats_increment_tp_drops()
 
 #include "ext.h" // for ext(), noext_copy()
+#include "sig.h" // for keep_running
 
 #include <arpa/inet.h>       // for htons()
 #include <linux/if_packet.h> // for PACKET_FANOUT, PACKET_OUTGOING,
@@ -25,7 +28,7 @@
                              //     tpacket_stats
 #include <net/ethernet.h>    // for ETH_P_ALL
 #include <sys/socket.h>      // for AF_PACKET, bind(), getsockopt(),
-                             //     recvfrom(), setsockopt(), SO_RCVTIMEO,
+                             //     recv(), setsockopt(), SO_RCVTIMEO,
                              //     SOCK_RAW, sockaddr, socket(), socklen_t,
                              //     SOL_PACKET, SOL_SOCKET
 #include <sys/time.h>        // for timeval
@@ -34,6 +37,10 @@
 #include <stdlib.h> // for calloc(), free()
 #include <string.h> // for strcmp(), strdup(), strerror()
 #include <errno.h>  // for errno
+
+#define INCREMENT_STEP 1
+
+#define PACKET_BUFFER_SIZE 65535
 
 int rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx, char *errbuf) {
   int status = 0;
@@ -160,6 +167,37 @@ int rxtx_ring_destroy(struct rxtx_ring *p) {
   p->errbuf = NULL;
 
   return 0;
+}
+
+void rxtx_ring_clear_unreliable_packets_in_buffer(struct rxtx_ring *p) {
+  unsigned char packet[PACKET_BUFFER_SIZE];
+  int length = 0;
+
+  while (keep_running) {
+
+    /*
+     * If we've directly processed all unreliable packets, we know all
+     * unreliable packets have been cleared.
+     */
+    if (rxtx_stats_get_packets_unreliable(p->stats) >= p->unreliable) {
+      break;
+    }
+
+    length = recv(p->fd, packet, sizeof(packet), 0);
+
+    /*
+     * If we see the ring buffer go empty, we know all unreliable packets have
+     * been cleared.
+     */
+    if (length == -1) {
+      break;
+    }
+
+    /*
+     * Otherwise, this packet should be treated as unreliable.
+     */
+    rxtx_stats_increment_packets_unreliable(p->stats, INCREMENT_STEP);
+  }
 }
 
 int rxtx_ring_mark_packets_in_buffer_as_unreliable(struct rxtx_ring *p) {
