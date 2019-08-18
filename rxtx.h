@@ -11,7 +11,10 @@
 #ifndef _RXTX_H_
 #define _RXTX_H_
 
-#include "rxtx_savefile.h" // for rxtx_savefile
+struct rxtx_desc;
+struct rxtx_ring;
+
+#include "rxtx_ring.h"     // for rxtx_ring
 #include "rxtx_stats.h"    // for rxtx_stats
 
 #include "ring_set.h" // for for_each_ring_in_size(),
@@ -31,10 +34,6 @@
   for_each_set_ring_in_size((ring), &((rtd)->args->ring_set), (rtd)->args->ring_count)
 
 extern char *program_basename;
-
-struct rxtx_args;
-struct rxtx_desc;
-struct rxtx_ring;
 
 struct rxtx_args {
   bool      capture_rx;
@@ -56,16 +55,6 @@ struct rxtx_desc {
   struct rxtx_stats *stats;
   unsigned int      ifindex;
   int               fanout_group_id;
-};
-
-struct rxtx_ring {
-  struct rxtx_desc  *rtd;
-  struct rxtx_savefile *savefile;
-  struct rxtx_stats *stats;
-  int               idx;
-  int               fd;
-  unsigned int      unreliable;
-  char              *errbuf;
 };
 
 int rxtx_close(struct rxtx_desc *rtd);

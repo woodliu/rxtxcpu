@@ -9,7 +9,22 @@
 #ifndef _RXTX_RING_H_
 #define _RXTX_RING_H_
 
-#include "rxtx.h" // for rxtx_ring
+struct rxtx_desc;
+struct rxtx_ring;
+
+#include "rxtx.h"          // for rxtx_desc
+#include "rxtx_savefile.h" // for rxtx_savefile
+#include "rxtx_stats.h"    // for rxtx_stats
+
+struct rxtx_ring {
+  struct rxtx_desc  *rtd;
+  struct rxtx_savefile *savefile;
+  struct rxtx_stats *stats;
+  int               idx;
+  int               fd;
+  unsigned int      unreliable;
+  char              *errbuf;
+};
 
 int rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx, char *errbuf);
 int rxtx_ring_destroy(struct rxtx_ring *p);
