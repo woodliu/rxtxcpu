@@ -16,40 +16,26 @@
 #include "rxtx_ring.h"     // for rxtx_ring_destroy(),
                            //     rxtx_ring_mark_packets_in_buffer_as_unreliable(),
                            //     rxtx_ring_savefile_open()
-#include "rxtx_savefile.h" // for rxtx_savefile_close(), rxtx_savefile_dump()
-#include "rxtx_stats.h"    // for rxtx_stats_destroy(),
-                           //     rxtx_stats_destroy_with_mutex(),
+#include "rxtx_savefile.h" // for rxtx_savefile_dump()
+#include "rxtx_stats.h"    // for rxtx_stats_destroy_with_mutex(),
                            //     rxtx_stats_get_packets_received(),
                            //     rxtx_stats_get_packets_unreliable(),
                            //     rxtx_stats_increment_packets_received(),
                            //     rxtx_stats_increment_packets_unreliable(),
-                           //     rxtx_stats_init(),
                            //     rxtx_stats_init_with_mutex()
 
 #include "interface.h" // for interface_set_promisc_on()
 #include "sig.h"       // for keep_running
 
-#include <arpa/inet.h>       // for htons()
-#include <linux/if_packet.h> // for PACKET_FANOUT, PACKET_OUTGOING,
-                             //     PACKET_RX_RING, PACKET_STATISTICS,
-                             //     PACKET_TX_RING, sockaddr_ll, tpacket_req,
-                             //     tpacket_stats
-#include <net/ethernet.h>    // for ETH_P_ALL
+#include <linux/if_packet.h> // for PACKET_OUTGOING, sockaddr_ll
 #include <net/if.h>          // for if_nametoindex()
-#include <sys/socket.h>      // for AF_PACKET, bind(), getsockopt(),
-                             //     recvfrom(), setsockopt(), SO_RCVTIMEO,
-                             //     SOCK_RAW, sockaddr, socket(), socklen_t,
-                             //     SOL_PACKET, SOL_SOCKET
-#include <sys/time.h>        // for timeval
+#include <sys/socket.h>      // for recvfrom(), setsockopt(), sockaddr,
 
-#include <errno.h>    // for errno
 #include <pcap.h>     // for bpf_u_int32, pcap_pkthdr
 #include <pthread.h>  // for pthread_self()
 #include <sched.h>    // for sched_getcpu()
-#include <stdbool.h>  // for true
-#include <stdio.h>    // for fprintf(), NULL, stderr, stdout
+#include <stdio.h>    // for fprintf(), NULL, stderr
 #include <stdlib.h>   // for calloc(), exit(), free()
-#include <string.h>   // for memset(), strerror(), strlen()
 #include <time.h>     // for time()
 #include <unistd.h>   // for getpid()
 
@@ -67,8 +53,6 @@ char *program_basename = NULL;
 
 static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args);
 static void rxtx_desc_destroy(struct rxtx_desc *p);
-static void
-rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx, char *_errbuf);
 static void rxtx_increment_counters(struct rxtx_ring *ring);
 
 static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
@@ -163,7 +147,11 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
    * instantiation order to follow ring index order.
    */
   for_each_ring(i, p) {
-    rxtx_ring_init(&(p->rings[i]), p, i, errbuf);
+    status = rxtx_ring_init(&(p->rings[i]), p, i, errbuf);
+    if (status == RXTX_ERROR) {
+      fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+      exit(EXIT_FAIL);
+    }
   }
 
   /*
@@ -218,108 +206,6 @@ static void rxtx_desc_destroy(struct rxtx_desc *p) {
   free(p->rings);
   p->rings = NULL;
   p->args = NULL;
-}
-
-static void
-rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx, char *_errbuf) {
-  p->errbuf = _errbuf;
-  p->rtd = rtd;
-  p->stats = calloc(1, sizeof(*p->stats));
-  rxtx_stats_init(p->stats, errbuf);
-  p->idx = ring_idx;
-  p->fd = -1;
-  p->unreliable = 0;
-
-  if (rtd->args->fanout_mode != NO_PACKET_FANOUT) {
-    /*
-     * The AF_PACKET address family gives us a packet socket at layer 2. The
-     * SOCK_RAW socket type gives us packets which include the layer 2 header.
-     * The htons(ETH_P_ALL) protocol gives us all packets from any protocol.
-     */
-    p->fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
-    if (p->fd == -1) {
-      fprintf(
-        stderr,
-        "%s: Failed to create socket: %s\n",
-        program_basename,
-        strerror(errno)
-      );
-      exit(EXIT_FAIL);
-    }
-
-    /*
-     * We're using the default, TPACKET_V1, presently. Updating to TPACKET_V3
-     * would be cool.
-     *
-     * PACKET_RX_RING sets up a mmapped ring buffer for async packet reception.
-     * PACKET_TX_RING sets up a mmapped ring buffer for packet transmission.
-     *
-     * I'm not sure if packets marked with PACKET_OUTGOING end up in the rx
-     * ring buffer or the tx ring buffer. PACKET_TX_RING may only be used for
-     * packets sent by this application, but it doesn't seem to cost much to
-     * set it up.
-     */
-    struct tpacket_req req;
-    memset(&req, 0, sizeof(req));
-    setsockopt(p->fd, SOL_PACKET, PACKET_RX_RING, (void *)&req, sizeof(req));
-    setsockopt(p->fd, SOL_PACKET, PACKET_TX_RING, (void *)&req, sizeof(req));
-
-    /*
-     * SO_RCVTIMEO sets a timeout for socket i/o system calls like recvfrom().
-     * This gives us an easy way to keep our worker loops from getting stuck
-     * waiting on a packet which may never arrive.
-     */
-    struct timeval receive_timeout;
-    /* no need for memset(), we're initializing every member */
-    receive_timeout.tv_sec = 0;
-    receive_timeout.tv_usec = 10;
-    setsockopt(
-      p->fd,
-      SOL_SOCKET,
-      SO_RCVTIMEO,
-      &receive_timeout,
-      sizeof(receive_timeout)
-    );
-
-    /*
-     * Per packet(7), we need to set sll_family, sll_protocol, and sll_ifindex
-     * in the sockaddr_ll we're passing to bind(). The values for sll_family
-     * and sll_protocol are straight out of our earlier call to socket(). The
-     * value for sll_ifindex is from our lookup.
-     */
-    struct sockaddr_ll sll;
-    memset(&sll, 0, sizeof(sll));
-    sll.sll_family = AF_PACKET;
-    sll.sll_protocol = htons(ETH_P_ALL);
-    sll.sll_ifindex = rtd->ifindex;
-
-    if (bind(p->fd, (struct sockaddr *)&sll, sizeof(sll)) == -1) {
-      fprintf(stderr, "%s: Failed to bind socket.\n", program_basename);
-      exit(EXIT_FAIL);
-    }
-
-    /*
-     * Add the socket to our fanout group using the fanout mode supplied.
-     */
-    int fanout_arg = (rtd->fanout_group_id | (rtd->args->fanout_mode << 16));
-    if (setsockopt(
-          p->fd,
-          SOL_PACKET,
-          PACKET_FANOUT,
-          &fanout_arg,
-          sizeof(fanout_arg)
-        ) < 0) {
-      fprintf(stderr, "%s: Failed to configure fanout.\n", program_basename);
-      exit(EXIT_FAIL);
-    }
-
-    /*
-     * TODO: Should we be calling shutdown() on sockets for rings not in our
-     *       ring_set?
-     *
-     *         int shutdown (int socket, int how)
-     */
-  }
 }
 
 static void rxtx_increment_counters(struct rxtx_ring *ring) {
