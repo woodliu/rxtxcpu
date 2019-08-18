@@ -13,9 +13,9 @@
 #include "rxtx.h"
 
 #include "rxtx_error.h"    // for RXTX_ERRBUF_SIZE, RXTX_ERROR
-#include "rxtx_ring.h"     // for rxtx_ring_mark_packets_in_buffer_as_unreliable()
-#include "rxtx_savefile.h" // for rxtx_savefile_close(), rxtx_savefile_dump(),
-                           //     rxtx_savefile_open()
+#include "rxtx_ring.h"     // for rxtx_ring_mark_packets_in_buffer_as_unreliable(),
+                           //     rxtx_ring_savefile_open()
+#include "rxtx_savefile.h" // for rxtx_savefile_close(), rxtx_savefile_dump()
 #include "rxtx_stats.h"    // for rxtx_stats_destroy(),
                            //     rxtx_stats_destroy_with_mutex(),
                            //     rxtx_stats_get_packets_received(),
@@ -25,7 +25,6 @@
                            //     rxtx_stats_init(),
                            //     rxtx_stats_init_with_mutex()
 
-#include "ext.h"       // for ext(), noext_copy()
 #include "interface.h" // for interface_set_promisc_on()
 #include "sig.h"       // for keep_running
 
@@ -47,9 +46,9 @@
 #include <pthread.h>  // for pthread_self()
 #include <sched.h>    // for sched_getcpu()
 #include <stdbool.h>  // for true
-#include <stdio.h>    // for asprintf(), fprintf(), NULL, stderr, stdout
+#include <stdio.h>    // for fprintf(), NULL, stderr, stdout
 #include <stdlib.h>   // for calloc(), exit(), free()
-#include <string.h>   // for memset(), strcmp(), strdup(), strerror(), strlen()
+#include <string.h>   // for memset(), strerror(), strlen()
 #include <time.h>     // for time()
 #include <unistd.h>   // for getpid()
 
@@ -192,26 +191,7 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
    */
   for_each_set_ring(i, p) {
     if (args->pcap_filename) {
-      p->rings[i].savefile = calloc(1, sizeof(*p->rings[i].savefile));
-
-      char *filename;
-
-      if (strcmp(args->pcap_filename, "-") == 0) {
-        filename = strdup(args->pcap_filename);
-      } else {
-        char *copy = noext_copy(args->pcap_filename);
-        asprintf(
-          &filename,
-          "%s-%d.%s",
-          copy,
-          i,
-          ext(args->pcap_filename)
-        );
-        free(copy);
-      }
-
-      status = rxtx_savefile_open(p->rings[i].savefile, filename, errbuf);
-      free(filename);
+      status = rxtx_ring_savefile_open(&(p->rings[i]), args->pcap_filename);
       if (status == RXTX_ERROR) {
         fprintf(stderr, "%s: %s\n", program_basename, errbuf);
         exit(EXIT_FAIL);
