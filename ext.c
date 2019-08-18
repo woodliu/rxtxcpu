@@ -21,7 +21,7 @@
  * Do not include libgen.h otherwise you'll get the POSIX version.
  */
 
-char *ext(char *path) {
+char *ext(const char *path) {
   char *filename = basename(path);
   char *p = strrchr(filename, '.');
   /*

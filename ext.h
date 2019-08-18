@@ -11,7 +11,7 @@
 #ifndef _EXT_H_
 #define _EXT_H_
 
-char *ext(char *path);
+char *ext(const char *path);
 char *noext(char *path);
 char *noext_copy(const char *path);
 
