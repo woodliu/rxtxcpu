@@ -13,7 +13,8 @@
 #include "rxtx.h"
 
 #include "rxtx_error.h"    // for RXTX_ERRBUF_SIZE, RXTX_ERROR
-#include "rxtx_ring.h"     // for rxtx_ring_mark_packets_in_buffer_as_unreliable(),
+#include "rxtx_ring.h"     // for rxtx_ring_destroy(),
+                           //     rxtx_ring_mark_packets_in_buffer_as_unreliable(),
                            //     rxtx_ring_savefile_open()
 #include "rxtx_savefile.h" // for rxtx_savefile_close(), rxtx_savefile_dump()
 #include "rxtx_stats.h"    // for rxtx_stats_destroy(),
@@ -68,7 +69,6 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args);
 static void rxtx_desc_destroy(struct rxtx_desc *p);
 static void
 rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx, char *_errbuf);
-static void rxtx_ring_destroy(struct rxtx_ring *p);
 static void rxtx_increment_counters(struct rxtx_ring *ring);
 
 static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
@@ -201,7 +201,7 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
 }
 
 static void rxtx_desc_destroy(struct rxtx_desc *p) {
-  int i;
+  int i, status;
 
   p->fanout_group_id = 0;
   p->ifindex = 0;
@@ -209,7 +209,11 @@ static void rxtx_desc_destroy(struct rxtx_desc *p) {
   free(p->stats);
   p->stats = NULL;
   for_each_ring(i, p) {
-    rxtx_ring_destroy(&(p->rings[i]));
+    status = rxtx_ring_destroy(&(p->rings[i]));
+    if (status == RXTX_ERROR) {
+      fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+      exit(EXIT_FAIL);
+    }
   }
   free(p->rings);
   p->rings = NULL;
@@ -316,30 +320,6 @@ rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx, char *_
      *         int shutdown (int socket, int how)
      */
   }
-}
-
-static void rxtx_ring_destroy(struct rxtx_ring *p) {
-  /*
-   * TODO: Should we be calling close() on sockets?
-   *
-   *         int close (int filedes)
-   */
-  p->fd = 0;
-  rxtx_stats_destroy(p->stats);
-  free(p->stats);
-  p->stats = NULL;
-  p->rtd = NULL;
-  if (p->savefile) {
-    int status = rxtx_savefile_close(p->savefile);
-    free(p->savefile);
-    if (status == RXTX_ERROR) {
-      fprintf(stderr, "%s: %s\n", program_basename, errbuf);
-      exit(EXIT_FAIL);
-    }
-  }
-  p->savefile = NULL;
-  p->idx = 0;
-  p->errbuf = NULL;
 }
 
 static void rxtx_increment_counters(struct rxtx_ring *ring) {

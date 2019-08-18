@@ -11,6 +11,7 @@
 
 #include "rxtx.h" // for rxtx_ring
 
+int rxtx_ring_destroy(struct rxtx_ring *p);
 int rxtx_ring_mark_packets_in_buffer_as_unreliable(struct rxtx_ring *p);
 int rxtx_ring_savefile_open(struct rxtx_ring *p, const char *template);
 int rxtx_ring_update_tpacket_stats(struct rxtx_ring *p);

@@ -10,8 +10,9 @@
 
 #include "rxtx_ring.h"
 #include "rxtx_error.h"    // for RXTX_ERROR, rxtx_fill_errbuf()
-#include "rxtx_savefile.h" // for rxtx_savefile_open()
-#include "rxtx_stats.h"    // for rxtx_stats_increment_tp_packets(),
+#include "rxtx_savefile.h" // for rxtx_savefile_close(), rxtx_savefile_open()
+#include "rxtx_stats.h"    // for rxtx_stats_destroy(),
+                           //     rxtx_stats_increment_tp_packets(),
                            //     rxtx_stats_increment_tp_drops()
 
 #include "ext.h" // for ext(), noext_copy()
@@ -23,6 +24,30 @@
 #include <stdlib.h> // for calloc(), free()
 #include <string.h> // for strcmp(), strdup(), strerror()
 #include <errno.h>  // for errno
+
+int rxtx_ring_destroy(struct rxtx_ring *p) {
+  p->fd = 0;
+
+  rxtx_stats_destroy(p->stats);
+  free(p->stats);
+  p->stats = NULL;
+
+  p->rtd = NULL;
+
+  if (p->savefile) {
+    int status = rxtx_savefile_close(p->savefile);
+    free(p->savefile);
+    if (status == RXTX_ERROR) {
+      return RXTX_ERROR;
+    }
+  }
+  p->savefile = NULL;
+
+  p->idx = 0;
+  p->errbuf = NULL;
+
+  return 0;
+}
 
 int rxtx_ring_mark_packets_in_buffer_as_unreliable(struct rxtx_ring *p) {
   int status = rxtx_ring_update_tpacket_stats(p);
