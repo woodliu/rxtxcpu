@@ -212,7 +212,7 @@ int main(int argc, char **argv) {
         return EXIT_OK;
 
       case 'w':
-        args.pcap_filename = optarg;
+        args.savefile_template = optarg;
         break;
 
       case ':':  /* missing option argument */
@@ -349,14 +349,13 @@ int main(int argc, char **argv) {
     return EXIT_FAIL_OPTION;
   }
 
-  if (args.pcap_filename &&
-      strcmp(args.pcap_filename, "-") == 0 &&
+  if (args.savefile_template &&
+      strcmp(args.savefile_template, "-") == 0 &&
       RING_COUNT(&(args.ring_set)) != 1) {
     fprintf(
       stderr,
-      "%s: Write file '%s' (stdout) is only permitted when capturing on a single cpu.\n",
-      program_basename,
-      args.pcap_filename
+      "%s: Write file '-' (stdout) is only permitted when capturing on a single cpu.\n",
+      program_basename
     );
     usage_short();
     return EXIT_FAIL_OPTION;
@@ -408,8 +407,8 @@ int main(int argc, char **argv) {
    * results.
    */
   FILE *out = stdout;
-  if (args.pcap_filename &&
-      strcmp(args.pcap_filename, "-") == 0) {
+  if (args.savefile_template &&
+      strcmp(args.savefile_template, "-") == 0) {
     out = stderr;
   }
   for_each_set_ring(i, &rtd) {

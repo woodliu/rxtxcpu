@@ -40,7 +40,7 @@ struct rxtx_args {
   pcap_direction_t direction;
   char      *ifname;
   int       fanout_mode;
-  char      *pcap_filename;
+  char      *savefile_template;
   uintmax_t packet_count;
   int       ring_count;
   cpu_set_t ring_set;
