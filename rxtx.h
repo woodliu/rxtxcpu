@@ -20,6 +20,7 @@ struct rxtx_ring;
 #include "ring_set.h" // for for_each_ring_in_size(),
                       //     for_each_set_ring_in_size()
 
+#include <pcap.h>    // for pcap_direction_t
 #include <pthread.h> // for pthread_mutex_t
 #include <sched.h>   // for cpu_set_t
 #include <stdbool.h> // for bool
@@ -36,8 +37,7 @@ struct rxtx_ring;
 extern char *program_basename;
 
 struct rxtx_args {
-  bool      capture_rx;
-  bool      capture_tx;
+  pcap_direction_t direction;
   char      *ifname;
   int       fanout_mode;
   char      *pcap_filename;

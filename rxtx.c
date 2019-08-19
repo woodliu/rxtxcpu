@@ -32,7 +32,7 @@
 #include <net/if.h>          // for if_nametoindex()
 #include <sys/socket.h>      // for recvfrom(), setsockopt(), sockaddr,
 
-#include <pcap.h>     // for bpf_u_int32, pcap_pkthdr
+#include <pcap.h>     // for bpf_u_int32, PCAP_D_IN, PCAP_D_OUT, pcap_pkthdr
 #include <pthread.h>  // for pthread_self()
 #include <sched.h>    // for sched_getcpu()
 #include <stdio.h>    // for fprintf(), NULL, stderr
@@ -266,11 +266,11 @@ void *rxtx_loop(void *r) {
       continue;
     }
 
-    if (!args->capture_rx && packet_direction_is_rx(&sll)) {
+    if (args->direction == PCAP_D_OUT && packet_direction_is_rx(&sll)) {
       continue;
     }
 
-    if (!args->capture_tx && packet_direction_is_tx(&sll)) {
+    if (args->direction == PCAP_D_IN && packet_direction_is_tx(&sll)) {
       continue;
     }
 

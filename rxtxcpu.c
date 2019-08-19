@@ -20,6 +20,7 @@
 
 #include <getopt.h>   // for getopt_long(), optarg, optind, option, optopt
 #include <inttypes.h> // for strtoumax()
+#include <pcap.h>     // for PCAP_D_IN, PCAP_D_INOUT, PCAP_D_OUT
 #include <pthread.h>  // for pthread_attr_destroy(), pthread_attr_init(),
                       //     pthread_attr_setaffinity_np(), pthread_attr_t,
                       //     pthread_create(), pthread_join(), pthread_t
@@ -123,17 +124,16 @@ int main(int argc, char **argv) {
   args.fanout_mode = PACKET_FANOUT_CPU;
 
   /*
-   * capture_rx and capture_tx defaults are based on the invocation.
+   * direction default is based on the invocation.
    */
-  args.capture_rx = true;
-  args.capture_tx = true;
+  args.direction = PCAP_D_INOUT;
 
   if (strcmp(program_basename, "rxcpu") == 0) {
-    args.capture_tx = false;
+    args.direction = PCAP_D_IN;
   }
 
   if (strcmp(program_basename, "txcpu") == 0) {
-    args.capture_rx = false;
+    args.direction = PCAP_D_OUT;
   }
 
   int c;
@@ -161,14 +161,11 @@ int main(int argc, char **argv) {
 
       case 'd':
         if (strcmp(optarg, "rx") == 0) {
-          args.capture_rx = true;
-          args.capture_tx = false;
+          args.direction = PCAP_D_IN;
         } else if (strcmp(optarg, "tx") == 0) {
-          args.capture_rx = false;
-          args.capture_tx = true;
+          args.direction = PCAP_D_OUT;
         } else if (strcmp(optarg, "rxtx") == 0) {
-          args.capture_rx = true;
-          args.capture_tx = true;
+          args.direction = PCAP_D_INOUT;
         } else {
           fprintf(stderr, "%s: Invalid direction '%s'.\n", program_basename, optarg);
           usage_short();
