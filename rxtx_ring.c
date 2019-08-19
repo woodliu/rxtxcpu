@@ -9,7 +9,9 @@
 #define _GNU_SOURCE
 
 #include "rxtx_ring.h"
-#include "rxtx.h"          // for NO_PACKET_FANOUT, rxtx_desc
+#include "rxtx.h"          // for NO_PACKET_FANOUT, rxtx_desc,
+                           //     rxtx_get_initialized_ring_count(),
+                           //     rxtx_increment_initialized_ring_count()
 #include "rxtx_error.h"    // for RXTX_ERROR, rxtx_fill_errbuf()
 #include "rxtx_savefile.h" // for rxtx_savefile_close(), rxtx_savefile_open()
 #include "rxtx_stats.h"    // for rxtx_stats_destroy(),
@@ -42,7 +44,7 @@
 
 #define PACKET_BUFFER_SIZE 65535
 
-int rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx, char *errbuf) {
+int rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, char *errbuf) {
   int status = 0;
 
   p->errbuf = errbuf;
@@ -55,7 +57,7 @@ int rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx, cha
   }
   rxtx_stats_init(p->stats, errbuf);
 
-  p->idx = ring_idx;
+  p->idx = rxtx_get_initialized_ring_count(rtd);
   p->fd = -1;
   p->unreliable = 0;
 
@@ -141,6 +143,8 @@ int rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, int ring_idx, cha
       return RXTX_ERROR;
     }
   }
+
+  rxtx_increment_initialized_ring_count(rtd);
 
   return 0;
 }

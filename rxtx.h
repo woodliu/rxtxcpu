@@ -55,10 +55,14 @@ struct rxtx_desc {
   struct rxtx_stats *stats;
   unsigned int      ifindex;
   int               fanout_group_id;
+  int               initialized_ring_count;
 };
 
 int rxtx_close(struct rxtx_desc *rtd);
 void *rxtx_loop(void *r);
 int rxtx_open(struct rxtx_desc *rtd, struct rxtx_args *args);
+
+int rxtx_get_initialized_ring_count(struct rxtx_desc *rtd);
+void rxtx_increment_initialized_ring_count(struct rxtx_desc *rtd);
 
 #endif // _RXTX_H_

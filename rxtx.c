@@ -143,12 +143,14 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
     fprintf(stderr, "Generated fanout group id '%d'.\n", p->fanout_group_id);
   }
 
+  p->initialized_ring_count = 0;
+
   /*
    * This loop creates our rings, including per-ring socket fds. We need the
    * instantiation order to follow ring index order.
    */
   for_each_ring(i, p) {
-    status = rxtx_ring_init(&(p->rings[i]), p, i, errbuf);
+    status = rxtx_ring_init(&(p->rings[i]), p, errbuf);
     if (status == RXTX_ERROR) {
       fprintf(stderr, "%s: %s\n", program_basename, errbuf);
       exit(EXIT_FAIL);
@@ -222,6 +224,14 @@ int rxtx_open(struct rxtx_desc *rtd, struct rxtx_args *args) {
 int rxtx_close(struct rxtx_desc *rtd) {
   rxtx_desc_destroy(rtd);
   return 0;
+}
+
+int rxtx_get_initialized_ring_count(struct rxtx_desc *p) {
+  return p->initialized_ring_count;
+}
+
+void rxtx_increment_initialized_ring_count(struct rxtx_desc *p) {
+  p->initialized_ring_count++;
 }
 
 void *rxtx_loop(void *r) {
