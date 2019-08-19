@@ -10,6 +10,7 @@
 
 #include "rxtx_ring.h"
 #include "rxtx.h"          // for NO_PACKET_FANOUT, rxtx_desc,
+                           //     rxtx_breakloop_isset(),
                            //     rxtx_get_initialized_ring_count(),
                            //     rxtx_increment_initialized_ring_count()
 #include "rxtx_error.h"    // for RXTX_ERROR, rxtx_fill_errbuf()
@@ -21,7 +22,6 @@
                            //     rxtx_stats_increment_tp_drops()
 
 #include "ext.h" // for ext(), noext_copy()
-#include "sig.h" // for keep_running
 
 #include <arpa/inet.h>       // for htons()
 #include <linux/if_packet.h> // for PACKET_FANOUT, PACKET_OUTGOING,
@@ -177,7 +177,7 @@ void rxtx_ring_clear_unreliable_packets_in_buffer(struct rxtx_ring *p) {
   unsigned char packet[PACKET_BUFFER_SIZE];
   int length = 0;
 
-  while (keep_running) {
+  while (!rxtx_breakloop_isset(p->rtd)) {
 
     /*
      * If we've directly processed all unreliable packets, we know all

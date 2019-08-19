@@ -23,6 +23,7 @@ struct rxtx_ring;
 #include <pcap.h>    // for pcap_direction_t
 #include <pthread.h> // for pthread_mutex_t
 #include <sched.h>   // for cpu_set_t
+#include <signal.h> // for sig_atomic_t
 #include <stdbool.h> // for bool
 #include <stdint.h>  // for uintmax_t
 
@@ -35,6 +36,7 @@ struct rxtx_ring;
   for_each_set_ring_in_size((ring), &((rtd)->args->ring_set), (rtd)->args->ring_count)
 
 extern char *program_basename;
+extern volatile sig_atomic_t rxtx_breakloop;
 
 struct rxtx_args {
   pcap_direction_t direction;
@@ -56,13 +58,18 @@ struct rxtx_desc {
   unsigned int      ifindex;
   int               fanout_group_id;
   int               initialized_ring_count;
+  int               breakloop;
 };
 
 int rxtx_close(struct rxtx_desc *rtd);
 void *rxtx_loop(void *r);
 int rxtx_open(struct rxtx_desc *rtd, struct rxtx_args *args);
 
+int rxtx_breakloop_isset(struct rxtx_desc *p);
 int rxtx_get_initialized_ring_count(struct rxtx_desc *rtd);
+
+void rxtx_set_breakloop(struct rxtx_desc *p);
+void rxtx_set_breakloop_global(void);
 void rxtx_increment_initialized_ring_count(struct rxtx_desc *rtd);
 
 #endif // _RXTX_H_

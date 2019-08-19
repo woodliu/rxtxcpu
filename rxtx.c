@@ -52,6 +52,8 @@
 char errbuf[RXTX_ERRBUF_SIZE] = "";
 char *program_basename = NULL;
 
+volatile sig_atomic_t rxtx_breakloop = 0;
+
 static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args);
 static void rxtx_desc_destroy(struct rxtx_desc *p);
 static void rxtx_increment_counters(struct rxtx_ring *ring);
@@ -71,6 +73,7 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
 
   p->ifindex = 0;
   p->fanout_group_id = 0;
+  p->breakloop = 0;
 
   /*
    * If we were supplied an ifname, we need to lookup the ifindex. Otherwise,
@@ -194,6 +197,7 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
 static void rxtx_desc_destroy(struct rxtx_desc *p) {
   int i, status;
 
+  p->breakloop = 0;
   p->fanout_group_id = 0;
   p->ifindex = 0;
   rxtx_stats_destroy_with_mutex(p->stats);
@@ -234,6 +238,21 @@ void rxtx_increment_initialized_ring_count(struct rxtx_desc *p) {
   p->initialized_ring_count++;
 }
 
+void rxtx_set_breakloop_global(void) {
+  rxtx_breakloop = 1;
+}
+
+void rxtx_set_breakloop(struct rxtx_desc *p) {
+  p->breakloop++;
+}
+
+int rxtx_breakloop_isset(struct rxtx_desc *p) {
+  if (rxtx_breakloop) {
+    return -1;
+  }
+  return p->breakloop;
+}
+
 void *rxtx_loop(void *r) {
   struct rxtx_ring *ring = r;
   struct rxtx_desc *rtd = ring->rtd;
@@ -252,7 +271,7 @@ void *rxtx_loop(void *r) {
 
   rxtx_ring_clear_unreliable_packets_in_buffer(ring);
 
-  while (keep_running) {
+  while (!rxtx_breakloop_isset(rtd)) {
 
     if (args->packet_count &&
         rxtx_stats_get_packets_received(rtd->stats) >= args->packet_count) {
