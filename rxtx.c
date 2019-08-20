@@ -170,7 +170,8 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
    */
   for_each_set_ring(i, p) {
     if (args->savefile_template) {
-      status = rxtx_ring_savefile_open(&(p->rings[i]), args->savefile_template);
+      status = rxtx_ring_savefile_open(&(p->rings[i]),
+                                                      args->savefile_template);
       if (status == RXTX_ERROR) {
         fprintf(stderr, "%s: %s\n", program_basename, errbuf);
         exit(EXIT_FAIL);
