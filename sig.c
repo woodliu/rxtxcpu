@@ -42,11 +42,8 @@ int setup_signals(void) {
   sigfillset(&sa.sa_mask);
 
   if (sigaction(SIGINT, &sa, NULL) == -1) {
-    fprintf(
-      stderr,
-      "%s: Failed to setup signal handler for SIGINT.\n",
-      program_basename
-    );
+    fprintf(stderr, "%s: Failed to setup signal handler for SIGINT.\n",
+                                                             program_basename);
     return -1;
   }
 
