@@ -17,6 +17,7 @@
   #include "tests/rxtx_stats/helper.h"
 #endif
 
+/* ========================================================================= */
 int rxtx_stats_init(struct rxtx_stats *p, char *errbuf) {
   p->errbuf = errbuf;
   p->packets_received = 0;
@@ -25,6 +26,7 @@ int rxtx_stats_init(struct rxtx_stats *p, char *errbuf) {
   return 0;
 }
 
+/* ========================================================================= */
 int rxtx_stats_destroy(struct rxtx_stats *p) {
   p->packets_unreliable = 0;
   p->packets_received = 0;
@@ -33,6 +35,7 @@ int rxtx_stats_destroy(struct rxtx_stats *p) {
   return 0;
 }
 
+/* ========================================================================= */
 int rxtx_stats_mutex_init(struct rxtx_stats *p) {
   p->mutex = calloc(1, sizeof(*p->mutex));
   if (!p->mutex) {
@@ -49,6 +52,7 @@ int rxtx_stats_mutex_init(struct rxtx_stats *p) {
   return 0;
 }
 
+/* ========================================================================= */
 int rxtx_stats_mutex_destroy(struct rxtx_stats *p) {
   int status = pthread_mutex_destroy(p->mutex);
   if (status) {
@@ -62,33 +66,40 @@ int rxtx_stats_mutex_destroy(struct rxtx_stats *p) {
   return 0;
 }
 
+/* ========================================================================= */
 int rxtx_stats_init_with_mutex(struct rxtx_stats *p, char *errbuf) {
   rxtx_stats_init(p, errbuf);
   return rxtx_stats_mutex_init(p);
 }
 
+/* ========================================================================= */
 int rxtx_stats_destroy_with_mutex(struct rxtx_stats *p) {
   int status = rxtx_stats_mutex_destroy(p);
   rxtx_stats_destroy(p);
   return status;
 }
 
+/* ========================================================================= */
 uintmax_t rxtx_stats_get_packets_received(struct rxtx_stats *p) {
   return p->packets_received;
 }
 
+/* ========================================================================= */
 uintmax_t rxtx_stats_get_packets_unreliable(struct rxtx_stats *p) {
   return p->packets_unreliable;
 }
 
+/* ========================================================================= */
 uintmax_t rxtx_stats_get_tp_packets(struct rxtx_stats *p) {
   return p->tp_packets;
 }
 
+/* ========================================================================= */
 uintmax_t rxtx_stats_get_tp_drops(struct rxtx_stats *p) {
   return p->tp_drops;
 }
 
+/* ========================================================================= */
 int rxtx_stats_increment_packets_received(struct rxtx_stats *p, int step) {
   int status;
 
@@ -113,6 +124,7 @@ int rxtx_stats_increment_packets_received(struct rxtx_stats *p, int step) {
   return 0;
 }
 
+/* ========================================================================= */
 int rxtx_stats_increment_packets_unreliable(struct rxtx_stats *p, int step) {
   int status;
 
@@ -137,6 +149,7 @@ int rxtx_stats_increment_packets_unreliable(struct rxtx_stats *p, int step) {
   return 0;
 }
 
+/* ========================================================================= */
 int rxtx_stats_increment_tp_packets(struct rxtx_stats *p, int step) {
   int status;
 
@@ -161,6 +174,7 @@ int rxtx_stats_increment_tp_packets(struct rxtx_stats *p, int step) {
   return 0;
 }
 
+/* ========================================================================= */
 int rxtx_stats_increment_tp_drops(struct rxtx_stats *p, int step) {
   int status;
 
