@@ -39,13 +39,15 @@ int rxtx_stats_destroy(struct rxtx_stats *p) {
 int rxtx_stats_mutex_init(struct rxtx_stats *p) {
   p->mutex = calloc(1, sizeof(*p->mutex));
   if (!p->mutex) {
-    rxtx_fill_errbuf(p->errbuf, "error initializing stats mutex: %s", strerror(errno));
+    rxtx_fill_errbuf(p->errbuf, "error initializing stats mutex: %s",
+                                                              strerror(errno));
     return RXTX_ERROR;
   }
 
   int status = pthread_mutex_init(p->mutex, NULL);
   if (status) {
-    rxtx_fill_errbuf(p->errbuf, "error initializing stats mutex: %s", strerror(status));
+    rxtx_fill_errbuf(p->errbuf, "error initializing stats mutex: %s",
+                                                             strerror(status));
     return RXTX_ERROR;
   }
 
@@ -56,7 +58,8 @@ int rxtx_stats_mutex_init(struct rxtx_stats *p) {
 int rxtx_stats_mutex_destroy(struct rxtx_stats *p) {
   int status = pthread_mutex_destroy(p->mutex);
   if (status) {
-    rxtx_fill_errbuf(p->errbuf, "error destroying stats mutex: %s", strerror(status));
+    rxtx_fill_errbuf(p->errbuf, "error destroying stats mutex: %s",
+                                                             strerror(status));
     return RXTX_ERROR;
   }
 
@@ -106,7 +109,8 @@ int rxtx_stats_increment_packets_received(struct rxtx_stats *p, int step) {
   if (p->mutex) {
     status = pthread_mutex_lock(p->mutex);
     if (status) {
-      rxtx_fill_errbuf(p->errbuf, "error locking stats mutex: %s", strerror(status));
+      rxtx_fill_errbuf(p->errbuf, "error locking stats mutex: %s",
+                                                             strerror(status));
       return RXTX_ERROR;
     }
   }
@@ -116,7 +120,8 @@ int rxtx_stats_increment_packets_received(struct rxtx_stats *p, int step) {
   if (p->mutex) {
     status = pthread_mutex_unlock(p->mutex);
     if (status) {
-      rxtx_fill_errbuf(p->errbuf, "error unlocking stats mutex: %s", strerror(status));
+      rxtx_fill_errbuf(p->errbuf, "error unlocking stats mutex: %s",
+                                                             strerror(status));
       return RXTX_ERROR;
     }
   }
@@ -131,7 +136,8 @@ int rxtx_stats_increment_packets_unreliable(struct rxtx_stats *p, int step) {
   if (p->mutex) {
     status = pthread_mutex_lock(p->mutex);
     if (status) {
-      rxtx_fill_errbuf(p->errbuf, "error locking stats mutex: %s", strerror(status));
+      rxtx_fill_errbuf(p->errbuf, "error locking stats mutex: %s",
+                                                             strerror(status));
       return RXTX_ERROR;
     }
   }
@@ -141,7 +147,8 @@ int rxtx_stats_increment_packets_unreliable(struct rxtx_stats *p, int step) {
   if (p->mutex) {
     status = pthread_mutex_unlock(p->mutex);
     if (status) {
-      rxtx_fill_errbuf(p->errbuf, "error unlocking stats mutex: %s", strerror(status));
+      rxtx_fill_errbuf(p->errbuf, "error unlocking stats mutex: %s",
+                                                             strerror(status));
       return RXTX_ERROR;
     }
   }
@@ -156,7 +163,8 @@ int rxtx_stats_increment_tp_packets(struct rxtx_stats *p, int step) {
   if (p->mutex) {
     status = pthread_mutex_lock(p->mutex);
     if (status) {
-      rxtx_fill_errbuf(p->errbuf, "error locking stats mutex: %s", strerror(status));
+      rxtx_fill_errbuf(p->errbuf, "error locking stats mutex: %s",
+                                                             strerror(status));
       return RXTX_ERROR;
     }
   }
@@ -166,7 +174,8 @@ int rxtx_stats_increment_tp_packets(struct rxtx_stats *p, int step) {
   if (p->mutex) {
     status = pthread_mutex_unlock(p->mutex);
     if (status) {
-      rxtx_fill_errbuf(p->errbuf, "error unlocking stats mutex: %s", strerror(status));
+      rxtx_fill_errbuf(p->errbuf, "error unlocking stats mutex: %s",
+                                                             strerror(status));
       return RXTX_ERROR;
     }
   }
@@ -181,7 +190,8 @@ int rxtx_stats_increment_tp_drops(struct rxtx_stats *p, int step) {
   if (p->mutex) {
     status = pthread_mutex_lock(p->mutex);
     if (status) {
-      rxtx_fill_errbuf(p->errbuf, "error locking stats mutex: %s", strerror(status));
+      rxtx_fill_errbuf(p->errbuf, "error locking stats mutex: %s",
+                                                             strerror(status));
       return RXTX_ERROR;
     }
   }
@@ -191,7 +201,8 @@ int rxtx_stats_increment_tp_drops(struct rxtx_stats *p, int step) {
   if (p->mutex) {
     status = pthread_mutex_unlock(p->mutex);
     if (status) {
-      rxtx_fill_errbuf(p->errbuf, "error unlocking stats mutex: %s", strerror(status));
+      rxtx_fill_errbuf(p->errbuf, "error unlocking stats mutex: %s",
+                                                             strerror(status));
       return RXTX_ERROR;
     }
   }
