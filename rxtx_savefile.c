@@ -24,7 +24,8 @@
 #endif
 
 /* ========================================================================= */
-int rxtx_savefile_open(struct rxtx_savefile *p, const char *filename, char *errbuf) {
+int rxtx_savefile_open(struct rxtx_savefile *p, const char *filename,
+                                                                char *errbuf) {
   p->errbuf = errbuf;
   p->name = strdup(filename);
   p->pd = pcap_open_dead(DLT_EN10MB, SNAPLEN);
@@ -37,7 +38,8 @@ int rxtx_savefile_open(struct rxtx_savefile *p, const char *filename, char *errb
   p->pdd = pcap_dump_open(p->pd, p->name);
 
   if (!p->pdd) {
-    rxtx_fill_errbuf(p->errbuf, "error opening savefile '%s': libpcap: %s", p->name, pcap_geterr(p->pd));
+    rxtx_fill_errbuf(p->errbuf, "error opening savefile '%s': libpcap: %s",
+                                                  p->name, pcap_geterr(p->pd));
     return RXTX_ERROR;
   }
 
@@ -45,15 +47,18 @@ int rxtx_savefile_open(struct rxtx_savefile *p, const char *filename, char *errb
 }
 
 /* ========================================================================= */
-int rxtx_savefile_dump(struct rxtx_savefile *p, struct pcap_pkthdr *header, u_char *packet, int flush) {
+int rxtx_savefile_dump(struct rxtx_savefile *p, struct pcap_pkthdr *header,
+                                                   u_char *packet, int flush) {
   pcap_dump((u_char *)p->pdd, header, packet);
 
   if (flush) {
     if (pcap_dump_flush(p->pdd) == PCAP_ERROR) {
       /*
-       * pcap_dump_flush() only returns PCAP_ERROR when fflush() returns EOF; errno should be set.
+       * pcap_dump_flush() only returns PCAP_ERROR when fflush() returns EOF;
+       * errno should be set.
        */
-      rxtx_fill_errbuf(p->errbuf, "error writing to savefile '%s': %s", p->name, strerror(errno));
+      rxtx_fill_errbuf(p->errbuf, "error writing to savefile '%s': %s",
+                                                     p->name, strerror(errno));
       return RXTX_ERROR;
     }
   }
@@ -70,9 +75,11 @@ int rxtx_savefile_close(struct rxtx_savefile *p) {
    */
   if ((pcap_dump_flush(p->pdd)) == PCAP_ERROR) {
     /*
-     * pcap_dump_flush() only returns PCAP_ERROR when fflush() returns EOF; errno should be set.
+     * pcap_dump_flush() only returns PCAP_ERROR when fflush() returns EOF;
+     * errno should be set.
      */
-    rxtx_fill_errbuf(p->errbuf, "error writing to savefile '%s': %s", p->name, strerror(errno));
+    rxtx_fill_errbuf(p->errbuf, "error writing to savefile '%s': %s", p->name,
+                                                              strerror(errno));
     status = RXTX_ERROR;
   }
 
