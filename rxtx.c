@@ -279,13 +279,13 @@ void *rxtx_loop(void *r) {
     }
 
     struct sockaddr_ll sll;
-    unsigned char packet_buffer[PACKET_BUFFER_SIZE];
+    unsigned char packet[PACKET_BUFFER_SIZE];
 
     unsigned int sll_length = sizeof(sll);
     int packet_length = recvfrom(
       ring->fd,
-      packet_buffer,
-      sizeof(packet_buffer),
+      packet,
+      sizeof(packet),
       0,
       (struct sockaddr *)&sll,
       &sll_length
@@ -314,7 +314,7 @@ void *rxtx_loop(void *r) {
       pcap_packet_header.ts.tv_usec = 0;
 
       int status;
-      status = rxtx_savefile_dump(savefile, &pcap_packet_header, packet_buffer, args->packet_buffered);
+      status = rxtx_savefile_dump(savefile, &pcap_packet_header, packet, args->packet_buffered);
 
       if (status == RXTX_ERROR) {
         fprintf(stderr, "%s: %s\n", program_basename, errbuf);
