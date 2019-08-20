@@ -9,8 +9,7 @@
 #define _GNU_SOURCE
 
 #include "rxtx_ring.h"
-#include "rxtx.h"          // for NO_PACKET_FANOUT, rxtx_desc,
-                           //     rxtx_breakloop_isset(),
+#include "rxtx.h"          // for rxtx_desc, rxtx_breakloop_isset(),
                            //     rxtx_get_initialized_ring_count(),
                            //     rxtx_increment_initialized_ring_count()
 #include "rxtx_error.h"    // for RXTX_ERROR, rxtx_fill_errbuf()
@@ -61,87 +60,85 @@ int rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, char *errbuf) {
   p->fd = -1;
   p->unreliable = 0;
 
-  if (rtd->args->fanout_mode != NO_PACKET_FANOUT) {
-    /*
-     * The AF_PACKET address family gives us a packet socket at layer 2. The
-     * SOCK_RAW socket type gives us packets which include the layer 2 header.
-     * The htons(ETH_P_ALL) protocol gives us all packets from any protocol.
-     */
-    p->fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
-    if (p->fd == -1) {
-      rxtx_fill_errbuf(p->errbuf, "error creating socket: %s", strerror(errno));
-      return RXTX_ERROR;
-    }
+  /*
+   * The AF_PACKET address family gives us a packet socket at layer 2. The
+   * SOCK_RAW socket type gives us packets which include the layer 2 header.
+   * The htons(ETH_P_ALL) protocol gives us all packets from any protocol.
+   */
+  p->fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+  if (p->fd == -1) {
+    rxtx_fill_errbuf(p->errbuf, "error creating socket: %s", strerror(errno));
+    return RXTX_ERROR;
+  }
 
-    /*
-     * We're using the default, TPACKET_V1, presently. Updating to TPACKET_V3
-     * would be cool.
-     *
-     * PACKET_RX_RING sets up a mmapped ring buffer for async packet reception.
-     * PACKET_TX_RING sets up a mmapped ring buffer for packet transmission.
-     *
-     * I'm not sure if packets marked with PACKET_OUTGOING end up in the rx
-     * ring buffer or the tx ring buffer. PACKET_TX_RING may only be used for
-     * packets sent by this application, but it doesn't seem to cost much to
-     * set it up.
-     */
-    struct tpacket_req req;
-    memset(&req, 0, sizeof(req));
+  /*
+   * We're using the default, TPACKET_V1, presently. Updating to TPACKET_V3
+   * would be cool.
+   *
+   * PACKET_RX_RING sets up a mmapped ring buffer for async packet reception.
+   * PACKET_TX_RING sets up a mmapped ring buffer for packet transmission.
+   *
+   * I'm not sure if packets marked with PACKET_OUTGOING end up in the rx
+   * ring buffer or the tx ring buffer. PACKET_TX_RING may only be used for
+   * packets sent by this application, but it doesn't seem to cost much to
+   * set it up.
+   */
+  struct tpacket_req req;
+  memset(&req, 0, sizeof(req));
 
-    status = setsockopt(p->fd, SOL_PACKET, PACKET_RX_RING, (void *)&req, sizeof(req));
-    if (status == -1) {
-      rxtx_fill_errbuf(p->errbuf, "error setting socket option: %s", strerror(errno));
-      return RXTX_ERROR;
-    }
+  status = setsockopt(p->fd, SOL_PACKET, PACKET_RX_RING, (void *)&req, sizeof(req));
+  if (status == -1) {
+    rxtx_fill_errbuf(p->errbuf, "error setting socket option: %s", strerror(errno));
+    return RXTX_ERROR;
+  }
 
-    status = setsockopt(p->fd, SOL_PACKET, PACKET_TX_RING, (void *)&req, sizeof(req));
-    if (status == -1) {
-      rxtx_fill_errbuf(p->errbuf, "error setting socket option: %s", strerror(errno));
-      return RXTX_ERROR;
-    }
+  status = setsockopt(p->fd, SOL_PACKET, PACKET_TX_RING, (void *)&req, sizeof(req));
+  if (status == -1) {
+    rxtx_fill_errbuf(p->errbuf, "error setting socket option: %s", strerror(errno));
+    return RXTX_ERROR;
+  }
 
-    /*
-     * SO_RCVTIMEO sets a timeout for socket i/o system calls like recvfrom().
-     * This gives us an easy way to keep our worker loops from getting stuck
-     * waiting on a packet which may never arrive.
-     */
-    struct timeval receive_timeout;
-    /* no need for memset(), we're initializing every member */
-    receive_timeout.tv_sec = 0;
-    receive_timeout.tv_usec = 10;
-    status = setsockopt(p->fd, SOL_SOCKET, SO_RCVTIMEO, &receive_timeout, sizeof(receive_timeout));
-    if (status == -1) {
-      rxtx_fill_errbuf(p->errbuf, "error setting socket option: %s", strerror(errno));
-      return RXTX_ERROR;
-    }
+  /*
+   * SO_RCVTIMEO sets a timeout for socket i/o system calls like recvfrom().
+   * This gives us an easy way to keep our worker loops from getting stuck
+   * waiting on a packet which may never arrive.
+   */
+  struct timeval receive_timeout;
+  /* no need for memset(), we're initializing every member */
+  receive_timeout.tv_sec = 0;
+  receive_timeout.tv_usec = 10;
+  status = setsockopt(p->fd, SOL_SOCKET, SO_RCVTIMEO, &receive_timeout, sizeof(receive_timeout));
+  if (status == -1) {
+    rxtx_fill_errbuf(p->errbuf, "error setting socket option: %s", strerror(errno));
+    return RXTX_ERROR;
+  }
 
-    /*
-     * Per packet(7), we need to set sll_family, sll_protocol, and sll_ifindex
-     * in the sockaddr_ll we're passing to bind(). The values for sll_family
-     * and sll_protocol are straight out of our earlier call to socket(). The
-     * value for sll_ifindex is from our lookup.
-     */
-    struct sockaddr_ll sll;
-    memset(&sll, 0, sizeof(sll));
-    sll.sll_family = AF_PACKET;
-    sll.sll_protocol = htons(ETH_P_ALL);
-    sll.sll_ifindex = rtd->ifindex;
+  /*
+   * Per packet(7), we need to set sll_family, sll_protocol, and sll_ifindex
+   * in the sockaddr_ll we're passing to bind(). The values for sll_family
+   * and sll_protocol are straight out of our earlier call to socket(). The
+   * value for sll_ifindex is from our lookup.
+   */
+  struct sockaddr_ll sll;
+  memset(&sll, 0, sizeof(sll));
+  sll.sll_family = AF_PACKET;
+  sll.sll_protocol = htons(ETH_P_ALL);
+  sll.sll_ifindex = rtd->ifindex;
 
-    status = bind(p->fd, (struct sockaddr *)&sll, sizeof(sll));
-    if (status == -1) {
-      rxtx_fill_errbuf(p->errbuf, "error binding socket: %s", strerror(errno));
-      return RXTX_ERROR;
-    }
+  status = bind(p->fd, (struct sockaddr *)&sll, sizeof(sll));
+  if (status == -1) {
+    rxtx_fill_errbuf(p->errbuf, "error binding socket: %s", strerror(errno));
+    return RXTX_ERROR;
+  }
 
-    /*
-     * Add the socket to our fanout group using the fanout mode supplied.
-     */
-    int fanout_arg = (rtd->fanout_group_id | (rtd->args->fanout_mode << 16));
-    status = setsockopt(p->fd, SOL_PACKET, PACKET_FANOUT, &fanout_arg, sizeof(fanout_arg));
-    if (status == -1) {
-      rxtx_fill_errbuf(p->errbuf, "error configuring fanout: %s", strerror(errno));
-      return RXTX_ERROR;
-    }
+  /*
+   * Add the socket to our fanout group using the fanout mode supplied.
+   */
+  int fanout_arg = (rtd->fanout_group_id | (rtd->args->fanout_mode << 16));
+  status = setsockopt(p->fd, SOL_PACKET, PACKET_FANOUT, &fanout_arg, sizeof(fanout_arg));
+  if (status == -1) {
+    rxtx_fill_errbuf(p->errbuf, "error configuring fanout: %s", strerror(errno));
+    return RXTX_ERROR;
   }
 
   rxtx_increment_initialized_ring_count(rtd);

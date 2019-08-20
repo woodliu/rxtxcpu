@@ -27,8 +27,6 @@ struct rxtx_ring;
 #include <stdbool.h> // for bool
 #include <stdint.h>  // for uintmax_t
 
-#define NO_PACKET_FANOUT -1
-
 #define for_each_ring(ring, rtd) \
   for_each_ring_in_size((ring), (rtd)->args->ring_count)
 
