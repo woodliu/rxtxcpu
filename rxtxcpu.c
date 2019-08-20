@@ -53,6 +53,7 @@ static const struct option long_options[] = {
   {0, 0, NULL, 0}
 };
 
+/* ========================================================================= */
 static void usage(void) {
   puts("Usage:");
   printf("  %s [OPTIONS] [INTERFACE]\n\n", program_basename);
@@ -89,6 +90,7 @@ static void usage(void) {
        "                               #   only when capturing on a single cpu.");
 }
 
+/* ========================================================================= */
 static void usage_short(void) {
   fprintf(stderr,
           "Usage: %s [--help] [--count=N] [--cpu-list=CPULIST|--cpu-mask=CPUMASK]\n"
@@ -99,6 +101,7 @@ static void usage_short(void) {
           (int) strlen(program_basename), "");
 }
 
+/* ========================================================================= */
 int main(int argc, char **argv) {
   program_basename = basename(argv[0]);
   int i;
