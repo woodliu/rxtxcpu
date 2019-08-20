@@ -123,8 +123,8 @@ int parse_cpu_list(char *cpu_list, cpu_set_t *cpu_set) {
      *      contains our range delimiter, '-'.
      *   2. Ensure endptr (endptr from the strtol() operation to find last) is
      *      NULL.
-     *   3. Ensure that last is not less than first (procfs accepts ranges where
-     *      last equals first, so we will too).
+     *   3. Ensure that last is not less than first (procfs accepts ranges
+     *       where last equals first, so we will too).
      */
     if (save[0] != '-' || *endptr || last < first) {
       return RETURN_BAD;
