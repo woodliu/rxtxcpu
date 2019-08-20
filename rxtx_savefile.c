@@ -23,6 +23,7 @@
   #include "tests/rxtx_savefile/helper.h"
 #endif
 
+/* ========================================================================= */
 int rxtx_savefile_open(struct rxtx_savefile *p, const char *filename, char *errbuf) {
   p->errbuf = errbuf;
   p->name = strdup(filename);
@@ -43,6 +44,7 @@ int rxtx_savefile_open(struct rxtx_savefile *p, const char *filename, char *errb
   return 0;
 }
 
+/* ========================================================================= */
 int rxtx_savefile_dump(struct rxtx_savefile *p, struct pcap_pkthdr *header, u_char *packet, int flush) {
   pcap_dump((u_char *)p->pdd, header, packet);
 
@@ -59,6 +61,7 @@ int rxtx_savefile_dump(struct rxtx_savefile *p, struct pcap_pkthdr *header, u_ch
   return 0;
 }
 
+/* ========================================================================= */
 int rxtx_savefile_close(struct rxtx_savefile *p) {
   int status = 0;
 
