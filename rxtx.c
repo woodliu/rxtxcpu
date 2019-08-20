@@ -13,10 +13,10 @@
 #include "rxtx.h"
 
 #include "rxtx_error.h"    // for RXTX_ERRBUF_SIZE, RXTX_ERROR
-#include "rxtx_ring.h"     // for rxtx_ring_clear_unreliable_packets_in_buffer(),
-                           //     rxtx_ring_destroy(), rxtx_ring_init(),
-                           //     rxtx_ring_mark_packets_in_buffer_as_unreliable(),
-                           //     rxtx_ring_savefile_open()
+#include "rxtx_ring.h" // for rxtx_ring_clear_unreliable_packets_in_buffer(),
+                       //     rxtx_ring_destroy(), rxtx_ring_init(),
+                       //     rxtx_ring_mark_packets_in_buffer_as_unreliable(),
+                       //     rxtx_ring_savefile_open()
 #include "rxtx_savefile.h" // for rxtx_savefile_dump()
 #include "rxtx_stats.h"    // for rxtx_stats_destroy_with_mutex(),
                            //     rxtx_stats_get_packets_received(),
@@ -87,12 +87,8 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
     p->ifindex = if_nametoindex(args->ifname);
 
     if (!p->ifindex) {
-      fprintf(
-        stderr,
-        "%s: Failed to get ifindex for interface '%s'\n",
-        program_basename,
-        args->ifname
-      );
+      fprintf(stderr, "%s: Failed to get ifindex for interface '%s'\n",
+                                               program_basename, args->ifname);
       exit(EXIT_FAIL);
     }
   }
@@ -101,12 +97,8 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
     if (p->ifindex == 0) {
       fprintf(stderr, "Using ifindex '%u' for any interface.\n", p->ifindex);
     } else {
-      fprintf(
-        stderr,
-        "Using ifindex '%u' for interface '%s'.\n",
-        p->ifindex,
-        args->ifname
-      );
+      fprintf(stderr, "Using ifindex '%u' for interface '%s'.\n", p->ifindex,
+                                                                 args->ifname);
     }
   }
 
@@ -117,19 +109,12 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
   if (args->promiscuous) {
     if (p->ifindex == 0) {
       if (args->verbose) {
-        fprintf(
-          stderr,
-          "Skipping promiscuous mode for ifindex '%u' (any interface).\n",
-          p->ifindex
-        );
+        fprintf(stderr, "Skipping promiscuous mode for ifindex '%u' (any"
+                                                 " interface).\n", p->ifindex);
       }
     } else if (interface_set_promisc_on(p->ifindex) == -1) {
-      fprintf(
-        stderr,
-        "%s: Failed to enable promiscuous mode for ifindex '%u'.\n",
-        program_basename,
-        p->ifindex
-      );
+      fprintf(stderr, "%s: Failed to enable promiscuous mode for ifindex '%u'."
+                                           "\n", program_basename, p->ifindex);
       exit(EXIT_FAIL);
     }
   }
@@ -272,21 +257,16 @@ void *rxtx_loop(void *r) {
   struct rxtx_args *args = rtd->args;
 
   if (args->verbose) {
-    fprintf(
-      stderr,
-      "Worker '%lu' handling ring '%d' running on cpu '%d'.\n",
-      pthread_self(),
-      ring->idx,
-      sched_getcpu()
-    );
+    fprintf(stderr, "Worker '%lu' handling ring '%d' running on cpu '%d'.\n",
+                                    pthread_self(), ring->idx, sched_getcpu());
   }
 
   rxtx_ring_clear_unreliable_packets_in_buffer(ring);
 
   while (!rxtx_breakloop_isset(rtd)) {
 
-    if (args->packet_count &&
-        rxtx_stats_get_packets_received(rtd->stats) >= args->packet_count) {
+    if (args->packet_count && rxtx_stats_get_packets_received(rtd->stats)
+                                                       >= args->packet_count) {
       break;
     }
 
@@ -294,14 +274,8 @@ void *rxtx_loop(void *r) {
     unsigned char packet[PACKET_BUFFER_SIZE];
 
     unsigned int sll_length = sizeof(sll);
-    int packet_length = recvfrom(
-      ring->fd,
-      packet,
-      sizeof(packet),
-      0,
-      (struct sockaddr *)&sll,
-      &sll_length
-    );
+    int packet_length = recvfrom(ring->fd, packet, sizeof(packet), 0,
+                                         (struct sockaddr *)&sll, &sll_length);
 
     if (packet_length == -1) {
       continue;
@@ -326,7 +300,8 @@ void *rxtx_loop(void *r) {
       header.ts.tv_usec = 0;
 
       int status;
-      status = rxtx_savefile_dump(savefile, &header, packet, args->packet_buffered);
+      status = rxtx_savefile_dump(savefile, &header, packet,
+                                                        args->packet_buffered);
 
       if (status == RXTX_ERROR) {
         fprintf(stderr, "%s: %s\n", program_basename, errbuf);
