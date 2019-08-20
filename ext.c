@@ -21,6 +21,7 @@
  * Do not include libgen.h otherwise you'll get the POSIX version.
  */
 
+/* ========================================================================= */
 char *ext(const char *path) {
   char *filename = basename(path);
   char *p = strrchr(filename, '.');
@@ -38,6 +39,7 @@ char *ext(const char *path) {
   return p + 1;
 }
 
+/* ========================================================================= */
 char *noext(char *path) {
   char *filename = basename(path);
   char *p = strrchr(filename, '.');
@@ -56,6 +58,7 @@ char *noext(char *path) {
   return path;
 }
 
+/* ========================================================================= */
 char *noext_copy(const char *path) {
   char *copy;
   copy = strdup(path);
