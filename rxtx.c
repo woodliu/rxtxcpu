@@ -307,14 +307,14 @@ void *rxtx_loop(void *r) {
 
     if (savefile) {
       /* no need for memset(), we're initializing every member */
-      struct pcap_pkthdr pcap_packet_header;
-      pcap_packet_header.caplen     = (bpf_u_int32)packet_length;
-      pcap_packet_header.len        = (bpf_u_int32)packet_length;
-      pcap_packet_header.ts.tv_sec  = time(NULL);
-      pcap_packet_header.ts.tv_usec = 0;
+      struct pcap_pkthdr header;
+      header.caplen     = (bpf_u_int32)packet_length;
+      header.len        = (bpf_u_int32)packet_length;
+      header.ts.tv_sec  = time(NULL);
+      header.ts.tv_usec = 0;
 
       int status;
-      status = rxtx_savefile_dump(savefile, &pcap_packet_header, packet, args->packet_buffered);
+      status = rxtx_savefile_dump(savefile, &header, packet, args->packet_buffered);
 
       if (status == RXTX_ERROR) {
         fprintf(stderr, "%s: %s\n", program_basename, errbuf);
