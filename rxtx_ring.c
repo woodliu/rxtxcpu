@@ -43,6 +43,7 @@
 
 #define PACKET_BUFFER_SIZE 65535
 
+/* ========================================================================= */
 int rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, char *errbuf) {
   int status = 0;
 
@@ -146,6 +147,7 @@ int rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, char *errbuf) {
   return 0;
 }
 
+/* ========================================================================= */
 int rxtx_ring_destroy(struct rxtx_ring *p) {
   p->fd = 0;
 
@@ -170,6 +172,7 @@ int rxtx_ring_destroy(struct rxtx_ring *p) {
   return 0;
 }
 
+/* ========================================================================= */
 void rxtx_ring_clear_unreliable_packets_in_buffer(struct rxtx_ring *p) {
   unsigned char packet[PACKET_BUFFER_SIZE];
   int length = 0;
@@ -201,6 +204,7 @@ void rxtx_ring_clear_unreliable_packets_in_buffer(struct rxtx_ring *p) {
   }
 }
 
+/* ========================================================================= */
 int rxtx_ring_mark_packets_in_buffer_as_unreliable(struct rxtx_ring *p) {
   int status = rxtx_ring_update_tpacket_stats(p);
   if (status == RXTX_ERROR) {
@@ -213,6 +217,7 @@ int rxtx_ring_mark_packets_in_buffer_as_unreliable(struct rxtx_ring *p) {
   return 0;
 }
 
+/* ========================================================================= */
 int rxtx_ring_savefile_open(struct rxtx_ring *p, const char *template) {
   int status = 0;
   char *filename = NULL;
@@ -261,6 +266,7 @@ int rxtx_ring_savefile_open(struct rxtx_ring *p, const char *template) {
   return 0;
 }
 
+/* ========================================================================= */
 int rxtx_ring_update_tpacket_stats(struct rxtx_ring *p) {
   int status = 0;
   struct tpacket_stats tp_stats;
