@@ -54,10 +54,6 @@ char *program_basename = NULL;
 
 volatile sig_atomic_t rxtx_breakloop = 0;
 
-static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args);
-static void rxtx_desc_destroy(struct rxtx_desc *p);
-static void rxtx_increment_counters(struct rxtx_ring *ring);
-
 static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
   int i, status;
 
