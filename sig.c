@@ -16,12 +16,13 @@
 #include <stdio.h>  // for fprintf()
 #include <unistd.h> // for STDERR_FILENO, write()
 
-
+/* ========================================================================= */
 void sigint_handler(int signal) {
   rxtx_set_breakloop_global();
   write(STDERR_FILENO, "\n", 1);
 }
 
+/* ========================================================================= */
 int setup_signals(void) {
   struct sigaction sa;
 
