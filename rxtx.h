@@ -61,15 +61,15 @@ struct rxtx_desc {
   int               breakloop;
 };
 
+int rxtx_open(struct rxtx_desc *rtd, struct rxtx_args *args);
 int rxtx_close(struct rxtx_desc *rtd);
 void *rxtx_loop(void *r);
-int rxtx_open(struct rxtx_desc *rtd, struct rxtx_args *args);
 
 int rxtx_breakloop_isset(struct rxtx_desc *p);
 int rxtx_get_initialized_ring_count(struct rxtx_desc *rtd);
 
+void rxtx_increment_initialized_ring_count(struct rxtx_desc *rtd);
 void rxtx_set_breakloop(struct rxtx_desc *p);
 void rxtx_set_breakloop_global(void);
-void rxtx_increment_initialized_ring_count(struct rxtx_desc *rtd);
 
 #endif // _RXTX_H_

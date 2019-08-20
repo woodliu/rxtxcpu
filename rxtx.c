@@ -226,6 +226,13 @@ int rxtx_close(struct rxtx_desc *rtd) {
   return 0;
 }
 
+int rxtx_breakloop_isset(struct rxtx_desc *p) {
+  if (rxtx_breakloop) {
+    return -1;
+  }
+  return p->breakloop;
+}
+
 int rxtx_get_initialized_ring_count(struct rxtx_desc *p) {
   return p->initialized_ring_count;
 }
@@ -234,19 +241,12 @@ void rxtx_increment_initialized_ring_count(struct rxtx_desc *p) {
   p->initialized_ring_count++;
 }
 
-void rxtx_set_breakloop_global(void) {
-  rxtx_breakloop = 1;
-}
-
 void rxtx_set_breakloop(struct rxtx_desc *p) {
   p->breakloop++;
 }
 
-int rxtx_breakloop_isset(struct rxtx_desc *p) {
-  if (rxtx_breakloop) {
-    return -1;
-  }
-  return p->breakloop;
+void rxtx_set_breakloop_global(void) {
+  rxtx_breakloop = 1;
 }
 
 void *rxtx_loop(void *r) {
