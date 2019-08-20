@@ -14,8 +14,8 @@
 struct rxtx_desc;
 struct rxtx_ring;
 
-#include "rxtx_ring.h"     // for rxtx_ring
-#include "rxtx_stats.h"    // for rxtx_stats
+#include "rxtx_ring.h"  // for rxtx_ring
+#include "rxtx_stats.h" // for rxtx_stats
 
 #include "ring_set.h" // for for_each_ring_in_size(),
                       //     for_each_set_ring_in_size()
@@ -23,7 +23,7 @@ struct rxtx_ring;
 #include <pcap.h>    // for pcap_direction_t
 #include <pthread.h> // for pthread_mutex_t
 #include <sched.h>   // for cpu_set_t
-#include <signal.h> // for sig_atomic_t
+#include <signal.h>  // for sig_atomic_t
 #include <stdbool.h> // for bool
 #include <stdint.h>  // for uintmax_t
 
