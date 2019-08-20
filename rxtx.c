@@ -54,6 +54,7 @@ char *program_basename = NULL;
 
 volatile sig_atomic_t rxtx_breakloop = 0;
 
+/* ========================================================================= */
 static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
   int i, status;
 
@@ -190,6 +191,7 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
   }
 }
 
+/* ========================================================================= */
 static void rxtx_desc_destroy(struct rxtx_desc *p) {
   int i, status;
 
@@ -211,21 +213,27 @@ static void rxtx_desc_destroy(struct rxtx_desc *p) {
   p->args = NULL;
 }
 
+/* ========================================================================= */
 static void rxtx_increment_counters(struct rxtx_ring *ring) {
   rxtx_stats_increment_packets_received(ring->rtd->stats, INCREMENT_STEP);
   rxtx_stats_increment_packets_received(ring->stats, INCREMENT_STEP);
 }
 
+/* ========================================================================= */
 int rxtx_open(struct rxtx_desc *rtd, struct rxtx_args *args) {
   rxtx_desc_init(rtd, args);
   return 0;
 }
 
+/* ========================================================================= */
 int rxtx_close(struct rxtx_desc *rtd) {
   rxtx_desc_destroy(rtd);
   return 0;
 }
 
+
+/* ---------------------------- start of getters --------------------------- */
+/* ========================================================================= */
 int rxtx_breakloop_isset(struct rxtx_desc *p) {
   if (rxtx_breakloop) {
     return -1;
@@ -233,22 +241,30 @@ int rxtx_breakloop_isset(struct rxtx_desc *p) {
   return p->breakloop;
 }
 
+/* ========================================================================= */
 int rxtx_get_initialized_ring_count(struct rxtx_desc *p) {
   return p->initialized_ring_count;
 }
+/* ----------------------------- end of getters ---------------------------- */
 
+/* ---------------------------- start of setters --------------------------- */
+/* ========================================================================= */
 void rxtx_increment_initialized_ring_count(struct rxtx_desc *p) {
   p->initialized_ring_count++;
 }
 
+/* ========================================================================= */
 void rxtx_set_breakloop(struct rxtx_desc *p) {
   p->breakloop++;
 }
 
+/* ========================================================================= */
 void rxtx_set_breakloop_global(void) {
   rxtx_breakloop = 1;
 }
+/* ----------------------------- end of setters ---------------------------- */
 
+/* ========================================================================= */
 void *rxtx_loop(void *r) {
   struct rxtx_ring *ring = r;
   struct rxtx_desc *rtd = ring->rtd;
