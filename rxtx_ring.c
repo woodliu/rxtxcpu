@@ -52,7 +52,8 @@ int rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, char *errbuf) {
 
   p->stats = calloc(1, sizeof(*p->stats));
   if (!p->stats) {
-    rxtx_fill_errbuf(p->errbuf, "error initializing ring: %s", strerror(errno));
+    rxtx_fill_errbuf(p->errbuf, "error initializing ring: %s",
+                                                              strerror(errno));
     return RXTX_ERROR;
   }
   rxtx_stats_init(p->stats, errbuf);
@@ -87,15 +88,19 @@ int rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, char *errbuf) {
   struct tpacket_req req;
   memset(&req, 0, sizeof(req));
 
-  status = setsockopt(p->fd, SOL_PACKET, PACKET_RX_RING, (void *)&req, sizeof(req));
+  status = setsockopt(p->fd, SOL_PACKET, PACKET_RX_RING, (void *)&req,
+                                                                  sizeof(req));
   if (status == -1) {
-    rxtx_fill_errbuf(p->errbuf, "error setting socket option: %s", strerror(errno));
+    rxtx_fill_errbuf(p->errbuf, "error setting socket option: %s",
+                                                              strerror(errno));
     return RXTX_ERROR;
   }
 
-  status = setsockopt(p->fd, SOL_PACKET, PACKET_TX_RING, (void *)&req, sizeof(req));
+  status = setsockopt(p->fd, SOL_PACKET, PACKET_TX_RING, (void *)&req,
+                                                                  sizeof(req));
   if (status == -1) {
-    rxtx_fill_errbuf(p->errbuf, "error setting socket option: %s", strerror(errno));
+    rxtx_fill_errbuf(p->errbuf, "error setting socket option: %s",
+                                                              strerror(errno));
     return RXTX_ERROR;
   }
 
@@ -108,9 +113,11 @@ int rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, char *errbuf) {
   /* no need for memset(), we're initializing every member */
   receive_timeout.tv_sec = 0;
   receive_timeout.tv_usec = 10;
-  status = setsockopt(p->fd, SOL_SOCKET, SO_RCVTIMEO, &receive_timeout, sizeof(receive_timeout));
+  status = setsockopt(p->fd, SOL_SOCKET, SO_RCVTIMEO, &receive_timeout,
+                                                      sizeof(receive_timeout));
   if (status == -1) {
-    rxtx_fill_errbuf(p->errbuf, "error setting socket option: %s", strerror(errno));
+    rxtx_fill_errbuf(p->errbuf, "error setting socket option: %s",
+                                                              strerror(errno));
     return RXTX_ERROR;
   }
 
@@ -136,9 +143,11 @@ int rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, char *errbuf) {
    * Add the socket to our fanout group using the fanout mode supplied.
    */
   int fanout_arg = (rtd->fanout_group_id | (rtd->args->fanout_mode << 16));
-  status = setsockopt(p->fd, SOL_PACKET, PACKET_FANOUT, &fanout_arg, sizeof(fanout_arg));
+  status = setsockopt(p->fd, SOL_PACKET, PACKET_FANOUT, &fanout_arg,
+                                                           sizeof(fanout_arg));
   if (status == -1) {
-    rxtx_fill_errbuf(p->errbuf, "error configuring fanout: %s", strerror(errno));
+    rxtx_fill_errbuf(p->errbuf, "error configuring fanout: %s",
+                                                              strerror(errno));
     return RXTX_ERROR;
   }
 
@@ -237,19 +246,22 @@ int rxtx_ring_savefile_open(struct rxtx_ring *p, const char *template) {
   if (strcmp(template, "-") == 0) {
     filename = strdup(template);
     if (!filename) {
-      rxtx_fill_errbuf(p->errbuf, "error opening savefile: %s", strerror(errno));
+      rxtx_fill_errbuf(p->errbuf, "error opening savefile: %s",
+                                                              strerror(errno));
       return RXTX_ERROR;
     }
   } else {
     noext = noext_copy(template);
     if (!noext) {
-      rxtx_fill_errbuf(p->errbuf, "error opening savefile: %s", strerror(errno));
+      rxtx_fill_errbuf(p->errbuf, "error opening savefile: %s",
+                                                              strerror(errno));
       return RXTX_ERROR;
     }
 
     status = asprintf(&filename, "%s-%d.%s", noext, p->idx, ext(template));
     if (status == -1) {
-      rxtx_fill_errbuf(p->errbuf, "error opening savefile: %s", strerror(errno));
+      rxtx_fill_errbuf(p->errbuf, "error opening savefile: %s",
+                                                              strerror(errno));
       return RXTX_ERROR;
     }
 
@@ -274,7 +286,8 @@ int rxtx_ring_update_tpacket_stats(struct rxtx_ring *p) {
 
   status = getsockopt(p->fd, SOL_PACKET, PACKET_STATISTICS, &tp_stats, &len);
   if (status < 0) {
-    rxtx_fill_errbuf(p->errbuf, "error collecting packet statistics: %s", strerror(errno));
+    rxtx_fill_errbuf(p->errbuf, "error collecting packet statistics: %s",
+                                                              strerror(errno));
     return RXTX_ERROR;
   }
 
