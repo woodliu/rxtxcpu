@@ -14,6 +14,7 @@
                              //     socket(), SOL_PACKET
 #include <string.h>          // for memset()
 
+/* ========================================================================= */
 int interface_set_promisc_on(const unsigned int ifindex) {
   struct packet_mreq mr;
   memset(&mr, 0, sizeof(mr));
