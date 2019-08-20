@@ -27,11 +27,6 @@ int interface_set_promisc_on(const unsigned int ifindex) {
     return -1;
   }
 
-  return setsockopt(
-           fd,
-           SOL_PACKET,
-           PACKET_ADD_MEMBERSHIP,
-           (void *)&mr,
-           sizeof(mr)
-         );
+  return setsockopt(fd, SOL_PACKET, PACKET_ADD_MEMBERSHIP, (void *)&mr,
+                                                                   sizeof(mr));
 }
