@@ -112,10 +112,13 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
         fprintf(stderr, "Skipping promiscuous mode for ifindex '%u' (any"
                                                  " interface).\n", p->ifindex);
       }
-    } else if (interface_set_promisc_on(p->ifindex) == -1) {
-      fprintf(stderr, "%s: Failed to enable promiscuous mode for ifindex '%u'."
-                                           "\n", program_basename, p->ifindex);
-      exit(EXIT_FAIL);
+    } else {
+      status = interface_set_promisc_on(p->ifindex);
+      if (status == -1) {
+        fprintf(stderr, "%s: Failed to enable promiscuous mode for ifindex"
+                                     " '%u'.\n", program_basename, p->ifindex);
+        exit(EXIT_FAIL);
+      }
     }
   }
 
