@@ -59,6 +59,7 @@
  */
 #define MAX_ONLINE_CPU_LIST_LENGTH 12915 // 12914 + '\0'
 
+/* ========================================================================= */
 int get_online_cpu_set(cpu_set_t *cpu_set) {
   CPU_ZERO(cpu_set);
 
@@ -76,6 +77,7 @@ int get_online_cpu_set(cpu_set_t *cpu_set) {
   return RETURN_GOOD;
 }
 
+/* ========================================================================= */
 static int hex2int(char c) {
   if (c >= '0' && c <= '9')
     return c - '0';
@@ -86,6 +88,7 @@ static int hex2int(char c) {
   return -1;
 }
 
+/* ========================================================================= */
 int parse_cpu_list(char *cpu_list, cpu_set_t *cpu_set) {
   CPU_ZERO(cpu_set);
 
@@ -135,6 +138,7 @@ int parse_cpu_list(char *cpu_list, cpu_set_t *cpu_set) {
   return RETURN_GOOD;
 }
 
+/* ========================================================================= */
 int parse_cpu_mask(char *cpu_mask, cpu_set_t *cpu_set) {
   CPU_ZERO(cpu_set);
 
