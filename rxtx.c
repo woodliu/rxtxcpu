@@ -13,10 +13,10 @@
 #include "rxtx.h"
 
 #include "rxtx_error.h"    // for RXTX_ERRBUF_SIZE, RXTX_ERROR
-#include "rxtx_ring.h"     // for rxtx_ring_clear_unreliable_packets_in_buffer(),
-                           //     rxtx_ring_destroy(), rxtx_ring_init(),
-                           //     rxtx_ring_mark_packets_in_buffer_as_unreliable(),
-                           //     rxtx_ring_savefile_open()
+#include "rxtx_ring.h" // for rxtx_ring_clear_unreliable_packets_in_buffer(),
+                       //     rxtx_ring_destroy(), rxtx_ring_init(),
+                       //     rxtx_ring_mark_packets_in_buffer_as_unreliable(),
+                       //     rxtx_ring_savefile_open()
 #include "rxtx_savefile.h" // for rxtx_savefile_dump()
 #include "rxtx_stats.h"    // for rxtx_stats_destroy_with_mutex(),
                            //     rxtx_stats_get_packets_received(),
@@ -32,7 +32,7 @@
 #include <net/if.h>          // for if_nametoindex()
 #include <sys/socket.h>      // for recvfrom(), setsockopt(), sockaddr,
 
-#include <pcap.h>     // for bpf_u_int32, pcap_pkthdr
+#include <pcap.h>     // for bpf_u_int32, PCAP_D_IN, PCAP_D_OUT, pcap_pkthdr
 #include <pthread.h>  // for pthread_self()
 #include <sched.h>    // for sched_getcpu()
 #include <stdio.h>    // for fprintf(), NULL, stderr
@@ -52,10 +52,9 @@
 char errbuf[RXTX_ERRBUF_SIZE] = "";
 char *program_basename = NULL;
 
-static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args);
-static void rxtx_desc_destroy(struct rxtx_desc *p);
-static void rxtx_increment_counters(struct rxtx_ring *ring);
+volatile sig_atomic_t rxtx_breakloop = 0;
 
+/* ========================================================================= */
 static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
   int i, status;
 
@@ -71,6 +70,7 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
 
   p->ifindex = 0;
   p->fanout_group_id = 0;
+  p->breakloop = 0;
 
   /*
    * If we were supplied an ifname, we need to lookup the ifindex. Otherwise,
@@ -87,12 +87,8 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
     p->ifindex = if_nametoindex(args->ifname);
 
     if (!p->ifindex) {
-      fprintf(
-        stderr,
-        "%s: Failed to get ifindex for interface '%s'\n",
-        program_basename,
-        args->ifname
-      );
+      fprintf(stderr, "%s: Failed to get ifindex for interface '%s'\n",
+                                               program_basename, args->ifname);
       exit(EXIT_FAIL);
     }
   }
@@ -101,12 +97,8 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
     if (p->ifindex == 0) {
       fprintf(stderr, "Using ifindex '%u' for any interface.\n", p->ifindex);
     } else {
-      fprintf(
-        stderr,
-        "Using ifindex '%u' for interface '%s'.\n",
-        p->ifindex,
-        args->ifname
-      );
+      fprintf(stderr, "Using ifindex '%u' for interface '%s'.\n", p->ifindex,
+                                                                 args->ifname);
     }
   }
 
@@ -117,20 +109,16 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
   if (args->promiscuous) {
     if (p->ifindex == 0) {
       if (args->verbose) {
-        fprintf(
-          stderr,
-          "Skipping promiscuous mode for ifindex '%u' (any interface).\n",
-          p->ifindex
-        );
+        fprintf(stderr, "Skipping promiscuous mode for ifindex '%u' (any"
+                                                 " interface).\n", p->ifindex);
       }
-    } else if (interface_set_promisc_on(p->ifindex) == -1) {
-      fprintf(
-        stderr,
-        "%s: Failed to enable promiscuous mode for ifindex '%u'.\n",
-        program_basename,
-        p->ifindex
-      );
-      exit(EXIT_FAIL);
+    } else {
+      status = interface_set_promisc_on(p->ifindex);
+      if (status == -1) {
+        fprintf(stderr, "%s: Failed to enable promiscuous mode for ifindex"
+                                     " '%u'.\n", program_basename, p->ifindex);
+        exit(EXIT_FAIL);
+      }
     }
   }
 
@@ -143,12 +131,14 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
     fprintf(stderr, "Generated fanout group id '%d'.\n", p->fanout_group_id);
   }
 
+  p->initialized_ring_count = 0;
+
   /*
    * This loop creates our rings, including per-ring socket fds. We need the
    * instantiation order to follow ring index order.
    */
   for_each_ring(i, p) {
-    status = rxtx_ring_init(&(p->rings[i]), p, i, errbuf);
+    status = rxtx_ring_init(&(p->rings[i]), p, errbuf);
     if (status == RXTX_ERROR) {
       fprintf(stderr, "%s: %s\n", program_basename, errbuf);
       exit(EXIT_FAIL);
@@ -179,8 +169,8 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
    * Open savefiles only for rings on which we're capturing.
    */
   for_each_set_ring(i, p) {
-    if (args->pcap_filename) {
-      status = rxtx_ring_savefile_open(&(p->rings[i]), args->pcap_filename);
+    if (args->savefile_template) {
+      status = rxtx_ring_savefile_open(&(p->rings[i]), args->savefile_template);
       if (status == RXTX_ERROR) {
         fprintf(stderr, "%s: %s\n", program_basename, errbuf);
         exit(EXIT_FAIL);
@@ -189,9 +179,11 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
   }
 }
 
+/* ========================================================================= */
 static void rxtx_desc_destroy(struct rxtx_desc *p) {
   int i, status;
 
+  p->breakloop = 0;
   p->fanout_group_id = 0;
   p->ifindex = 0;
   rxtx_stats_destroy_with_mutex(p->stats);
@@ -209,21 +201,58 @@ static void rxtx_desc_destroy(struct rxtx_desc *p) {
   p->args = NULL;
 }
 
+/* ========================================================================= */
 static void rxtx_increment_counters(struct rxtx_ring *ring) {
   rxtx_stats_increment_packets_received(ring->rtd->stats, INCREMENT_STEP);
   rxtx_stats_increment_packets_received(ring->stats, INCREMENT_STEP);
 }
 
+/* ========================================================================= */
 int rxtx_open(struct rxtx_desc *rtd, struct rxtx_args *args) {
   rxtx_desc_init(rtd, args);
   return 0;
 }
 
+/* ========================================================================= */
 int rxtx_close(struct rxtx_desc *rtd) {
   rxtx_desc_destroy(rtd);
   return 0;
 }
 
+
+/* ---------------------------- start of getters --------------------------- */
+/* ========================================================================= */
+int rxtx_breakloop_isset(struct rxtx_desc *p) {
+  if (rxtx_breakloop) {
+    return -1;
+  }
+  return p->breakloop;
+}
+
+/* ========================================================================= */
+int rxtx_get_initialized_ring_count(struct rxtx_desc *p) {
+  return p->initialized_ring_count;
+}
+/* ----------------------------- end of getters ---------------------------- */
+
+/* ---------------------------- start of setters --------------------------- */
+/* ========================================================================= */
+void rxtx_increment_initialized_ring_count(struct rxtx_desc *p) {
+  p->initialized_ring_count++;
+}
+
+/* ========================================================================= */
+void rxtx_set_breakloop(struct rxtx_desc *p) {
+  p->breakloop++;
+}
+
+/* ========================================================================= */
+void rxtx_set_breakloop_global(void) {
+  rxtx_breakloop = 1;
+}
+/* ----------------------------- end of setters ---------------------------- */
+
+/* ========================================================================= */
 void *rxtx_loop(void *r) {
   struct rxtx_ring *ring = r;
   struct rxtx_desc *rtd = ring->rtd;
@@ -231,46 +260,35 @@ void *rxtx_loop(void *r) {
   struct rxtx_args *args = rtd->args;
 
   if (args->verbose) {
-    fprintf(
-      stderr,
-      "Worker '%lu' handling ring '%d' running on cpu '%d'.\n",
-      pthread_self(),
-      ring->idx,
-      sched_getcpu()
-    );
+    fprintf(stderr, "Worker '%lu' handling ring '%d' running on cpu '%d'.\n",
+                                    pthread_self(), ring->idx, sched_getcpu());
   }
 
   rxtx_ring_clear_unreliable_packets_in_buffer(ring);
 
-  while (keep_running) {
+  while (!rxtx_breakloop_isset(rtd)) {
 
-    if (args->packet_count &&
-        rxtx_stats_get_packets_received(rtd->stats) >= args->packet_count) {
+    if (args->packet_count && rxtx_stats_get_packets_received(rtd->stats)
+                                                       >= args->packet_count) {
       break;
     }
 
     struct sockaddr_ll sll;
-    unsigned char packet_buffer[PACKET_BUFFER_SIZE];
+    unsigned char packet[PACKET_BUFFER_SIZE];
 
     unsigned int sll_length = sizeof(sll);
-    int packet_length = recvfrom(
-      ring->fd,
-      packet_buffer,
-      sizeof(packet_buffer),
-      0,
-      (struct sockaddr *)&sll,
-      &sll_length
-    );
+    int packet_length = recvfrom(ring->fd, packet, sizeof(packet), 0,
+                                         (struct sockaddr *)&sll, &sll_length);
 
     if (packet_length == -1) {
       continue;
     }
 
-    if (!args->capture_rx && packet_direction_is_rx(&sll)) {
+    if (args->direction == PCAP_D_OUT && packet_direction_is_rx(&sll)) {
       continue;
     }
 
-    if (!args->capture_tx && packet_direction_is_tx(&sll)) {
+    if (args->direction == PCAP_D_IN && packet_direction_is_tx(&sll)) {
       continue;
     }
 
@@ -278,14 +296,15 @@ void *rxtx_loop(void *r) {
 
     if (savefile) {
       /* no need for memset(), we're initializing every member */
-      struct pcap_pkthdr pcap_packet_header;
-      pcap_packet_header.caplen     = (bpf_u_int32)packet_length;
-      pcap_packet_header.len        = (bpf_u_int32)packet_length;
-      pcap_packet_header.ts.tv_sec  = time(NULL);
-      pcap_packet_header.ts.tv_usec = 0;
+      struct pcap_pkthdr header;
+      header.caplen     = (bpf_u_int32)packet_length;
+      header.len        = (bpf_u_int32)packet_length;
+      header.ts.tv_sec  = time(NULL);
+      header.ts.tv_usec = 0;
 
       int status;
-      status = rxtx_savefile_dump(savefile, &pcap_packet_header, packet_buffer, args->packet_buffered);
+      status = rxtx_savefile_dump(savefile, &header, packet,
+                                                        args->packet_buffered);
 
       if (status == RXTX_ERROR) {
         fprintf(stderr, "%s: %s\n", program_basename, errbuf);

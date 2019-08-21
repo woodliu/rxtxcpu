@@ -10,16 +10,15 @@
 
 #include "sig.h"
 
-#include "rxtx.h" // for program_basename
+#include "rxtx.h" // for program_basename,  rxtx_set_breakloop_global()
 
 #include <signal.h> // for sigaction, sigaction(), SIGINT, sigfillset()
 #include <stdio.h>  // for fprintf()
 #include <unistd.h> // for STDERR_FILENO, write()
 
-volatile sig_atomic_t keep_running = 1;
 
 void sigint_handler(int signal) {
-  keep_running = 0;
+  rxtx_set_breakloop_global();
   write(STDERR_FILENO, "\n", 1);
 }
 

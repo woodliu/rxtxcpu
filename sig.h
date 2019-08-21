@@ -11,10 +11,6 @@
 #ifndef _SIG_H_
 #define _SIG_H_
 
-#include <signal.h> // for sig_atomic_t
-
-extern volatile sig_atomic_t keep_running;
-
 void sigint_handler(int signal);
 int setup_signals(void);
 
