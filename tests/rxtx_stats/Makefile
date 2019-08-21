@@ -9,7 +9,11 @@ all: \
   test__rxtx_stats_increment_packets_received__pthread_mutex_lock__failure \
   test__rxtx_stats_increment_packets_received__pthread_mutex_unlock__failure \
   test__rxtx_stats_increment_packets_unreliable__pthread_mutex_lock__failure \
-  test__rxtx_stats_increment_packets_unreliable__pthread_mutex_unlock__failure
+  test__rxtx_stats_increment_packets_unreliable__pthread_mutex_unlock__failure \
+  test__rxtx_stats_increment_tp_packets__pthread_mutex_lock__failure \
+  test__rxtx_stats_increment_tp_packets__pthread_mutex_unlock__failure \
+  test__rxtx_stats_increment_tp_drops__pthread_mutex_lock__failure \
+  test__rxtx_stats_increment_tp_drops__pthread_mutex_unlock__failure
 
 test__rxtx_stats_mutex_init__calloc__failure: EXTRA_CFLAGS = \
 	-DTEST_CALLOC_FAILURE
@@ -21,11 +25,15 @@ test__rxtx_stats_mutex_destroy__pthread_mutex_destroy__failure: EXTRA_CFLAGS = \
 	-DTEST_PTHREAD_MUTEX_DESTROY_FAILURE
 
 test__rxtx_stats_increment_packets_received__pthread_mutex_lock__failure \
-  test__rxtx_stats_increment_packets_unreliable__pthread_mutex_lock__failure: EXTRA_CFLAGS = \
+  test__rxtx_stats_increment_packets_unreliable__pthread_mutex_lock__failure \
+  test__rxtx_stats_increment_tp_packets__pthread_mutex_lock__failure \
+  test__rxtx_stats_increment_tp_drops__pthread_mutex_lock__failure: EXTRA_CFLAGS = \
 	-DTEST_PTHREAD_MUTEX_LOCK_FAILURE
 
 test__rxtx_stats_increment_packets_received__pthread_mutex_unlock__failure \
-  test__rxtx_stats_increment_packets_unreliable__pthread_mutex_unlock__failure: EXTRA_CFLAGS = \
+  test__rxtx_stats_increment_packets_unreliable__pthread_mutex_unlock__failure \
+  test__rxtx_stats_increment_tp_packets__pthread_mutex_unlock__failure \
+  test__rxtx_stats_increment_tp_drops__pthread_mutex_unlock__failure: EXTRA_CFLAGS = \
 	-DTEST_PTHREAD_MUTEX_UNLOCK_FAILURE
 
 %: %.c ../../rxtx_stats.c
@@ -40,6 +48,11 @@ test: all
 	./test__rxtx_stats_increment_packets_received__pthread_mutex_unlock__failure
 	./test__rxtx_stats_increment_packets_unreliable__pthread_mutex_lock__failure
 	./test__rxtx_stats_increment_packets_unreliable__pthread_mutex_unlock__failure
+	./test__rxtx_stats_increment_tp_packets__pthread_mutex_lock__failure
+	./test__rxtx_stats_increment_tp_packets__pthread_mutex_unlock__failure
+	./test__rxtx_stats_increment_tp_drops__pthread_mutex_lock__failure
+	./test__rxtx_stats_increment_tp_drops__pthread_mutex_unlock__failure
+
 
 .PHONY: clean
 clean:
@@ -50,4 +63,8 @@ clean:
 	  test__rxtx_stats_increment_packets_received__pthread_mutex_lock__failure \
 	  test__rxtx_stats_increment_packets_received__pthread_mutex_unlock__failure \
 	  test__rxtx_stats_increment_packets_unreliable__pthread_mutex_lock__failure \
-	  test__rxtx_stats_increment_packets_unreliable__pthread_mutex_unlock__failure
+	  test__rxtx_stats_increment_packets_unreliable__pthread_mutex_unlock__failure \
+	  test__rxtx_stats_increment_tp_packets__pthread_mutex_lock__failure \
+	  test__rxtx_stats_increment_tp_packets__pthread_mutex_unlock__failure \
+	  test__rxtx_stats_increment_tp_drops__pthread_mutex_lock__failure \
+	  test__rxtx_stats_increment_tp_drops__pthread_mutex_unlock__failure
