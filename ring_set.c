@@ -8,6 +8,7 @@
 
 #include "ring_set.h"
 
+/* ========================================================================= */
 int find_next_set_ring(int ring, ring_set_t *ring_set) {
   for (; ring < RING_SETSIZE; ring++) {
     if (RING_ISSET(ring, ring_set)) {

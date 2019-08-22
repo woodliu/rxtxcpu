@@ -53,6 +53,7 @@ static const struct option long_options[] = {
   {0, 0, NULL, 0}
 };
 
+/* ========================================================================= */
 static void usage(void) {
   puts("Usage:");
   printf("  %s [OPTIONS] [INTERFACE]\n\n", program_basename);
@@ -89,6 +90,7 @@ static void usage(void) {
        "                               #   only when capturing on a single cpu.");
 }
 
+/* ========================================================================= */
 static void usage_short(void) {
   fprintf(stderr,
           "Usage: %s [--help] [--count=N] [--cpu-list=CPULIST|--cpu-mask=CPUMASK]\n"
@@ -99,6 +101,7 @@ static void usage_short(void) {
           (int) strlen(program_basename), "");
 }
 
+/* ========================================================================= */
 int main(int argc, char **argv) {
   program_basename = basename(argv[0]);
   int i;
@@ -148,12 +151,14 @@ int main(int argc, char **argv) {
    * argument. Otherwise '?' is returned for both invalid option and missing
    * option argument.
    */
-  while ((c = getopt_long(argc, argv, ":c:d:hl:m:pUvVw:", long_options, 0)) != -1) {
+  while ((c = getopt_long(argc, argv, ":c:d:hl:m:pUvVw:", long_options, 0))
+                                                                       != -1) {
     switch (c) {
       case 'c':
         args.packet_count = strtoumax(optarg, &endptr, OPTION_COUNT_BASE);
         if (*endptr) {
-          fprintf(stderr, "%s: Invalid count '%s'.\n", program_basename, optarg);
+          fprintf(stderr, "%s: Invalid count '%s'.\n", program_basename,
+                                                                       optarg);
           usage_short();
           return EXIT_FAIL_OPTION;
         }
@@ -167,7 +172,8 @@ int main(int argc, char **argv) {
         } else if (strcmp(optarg, "rxtx") == 0) {
           args.direction = PCAP_D_INOUT;
         } else {
-          fprintf(stderr, "%s: Invalid direction '%s'.\n", program_basename, optarg);
+          fprintf(stderr, "%s: Invalid direction '%s'.\n", program_basename,
+                                                                       optarg);
           usage_short();
           return EXIT_FAIL_OPTION;
         }
@@ -180,7 +186,8 @@ int main(int argc, char **argv) {
       case 'l':
         cpu_list = optarg;
         if (parse_cpu_list(optarg, &(args.ring_set))) {
-          fprintf(stderr, "%s: Invalid cpu list '%s'.\n", program_basename, optarg);
+          fprintf(stderr, "%s: Invalid cpu list '%s'.\n", program_basename,
+                                                                       optarg);
           usage_short();
           return EXIT_FAIL_OPTION;
         }
@@ -189,7 +196,8 @@ int main(int argc, char **argv) {
       case 'm':
         cpu_mask = optarg;
         if (parse_cpu_mask(optarg, &(args.ring_set))) {
-          fprintf(stderr, "%s: Invalid cpu mask '%s'.\n", program_basename, optarg);
+          fprintf(stderr, "%s: Invalid cpu mask '%s'.\n", program_basename,
+                                                                       optarg);
           usage_short();
           return EXIT_FAIL_OPTION;
         }
@@ -216,7 +224,8 @@ int main(int argc, char **argv) {
         break;
 
       case ':':  /* missing option argument */
-        fprintf(stderr, "%s: Option '%s' requires an argument.\n", program_basename, argv[optind-1]);
+        fprintf(stderr, "%s: Option '%s' requires an argument.\n",
+                                             program_basename, argv[optind-1]);
         usage_short();
         return EXIT_FAIL_OPTION;
 
@@ -259,7 +268,8 @@ int main(int argc, char **argv) {
         } else {
           badopt = argv[optind-1];
         }
-        fprintf(stderr, "%s: Unrecognized option '%s'.\n", program_basename, badopt);
+        fprintf(stderr, "%s: Unrecognized option '%s'.\n", program_basename,
+                                                                       badopt);
         if (optopt) {
           free(badopt);
         }
@@ -274,7 +284,8 @@ int main(int argc, char **argv) {
   }
 
   if (cpu_list && cpu_mask) {
-    fprintf(stderr, "%s: -l [--cpu-list] and -m [--cpu-mask] are mutually exclusive.\n", program_basename);
+    fprintf(stderr, "%s: -l [--cpu-list] and -m [--cpu-mask] are mutually"
+                                            " exclusive.\n", program_basename);
     usage_short();
     return EXIT_FAIL_OPTION;
   }
@@ -305,12 +316,8 @@ int main(int argc, char **argv) {
     }
   }
   if (!worker_count) {
-    fprintf(
-      stderr,
-      "%s: No configured cpus present in cpu %s.\n",
-      program_basename,
-      cpu_list ? "list" : "mask"
-    );
+    fprintf(stderr, "%s: No configured cpus present in cpu %s.\n",
+                                 program_basename, cpu_list ? "list" : "mask");
     usage_short();
     return EXIT_FAIL_OPTION;
   }
@@ -339,30 +346,23 @@ int main(int argc, char **argv) {
     }
   }
   if (!worker_count) {
-    fprintf(
-      stderr,
-      "%s: No online cpus present in cpu %s.\n",
-      program_basename,
-      cpu_list ? "list" : "mask"
-    );
+    fprintf(stderr, "%s: No online cpus present in cpu %s.\n",
+                                 program_basename, cpu_list ? "list" : "mask");
     usage_short();
     return EXIT_FAIL_OPTION;
   }
 
-  if (args.savefile_template &&
-      strcmp(args.savefile_template, "-") == 0 &&
-      RING_COUNT(&(args.ring_set)) != 1) {
-    fprintf(
-      stderr,
-      "%s: Write file '-' (stdout) is only permitted when capturing on a single cpu.\n",
-      program_basename
-    );
+  if (args.savefile_template && strcmp(args.savefile_template, "-") == 0 &&
+                                           RING_COUNT(&(args.ring_set)) != 1) {
+    fprintf(stderr, "%s: Write file '-' (stdout) is only permitted when"
+                            " capturing on a single cpu.\n", program_basename);
     usage_short();
     return EXIT_FAIL_OPTION;
   }
 
   if ((optind + 1) < argc) {
-    fprintf(stderr, "%s: Only one interface argument is allowed (got [ ", program_basename);
+    fprintf(stderr, "%s: Only one interface argument is allowed (got [ ",
+                                                             program_basename);
     for (; optind < argc; optind++) {
       fprintf(stderr, "'%s'", argv[optind]);
       if ((optind + 1) < argc)
@@ -407,18 +407,13 @@ int main(int argc, char **argv) {
    * results.
    */
   FILE *out = stdout;
-  if (args.savefile_template &&
-      strcmp(args.savefile_template, "-") == 0) {
+  if (args.savefile_template && strcmp(args.savefile_template, "-") == 0) {
     out = stderr;
   }
   for_each_set_ring(i, &rtd) {
     pthread_join(threads[i], NULL);
-    fprintf(
-      out,
-      "%ju packets captured on cpu%d.\n",
-      rtd.rings[i].stats->packets_received,
-      i
-    );
+    fprintf(out, "%ju packets captured on cpu%d.\n",
+                                      rtd.rings[i].stats->packets_received, i);
   }
 
   pthread_attr_destroy(&attr);

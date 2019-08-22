@@ -18,8 +18,10 @@ struct rxtx_savefile {
   char *errbuf;
 };
 
-int rxtx_savefile_open(struct rxtx_savefile *p, const char *filename, char *errbuf);
-int rxtx_savefile_dump(struct rxtx_savefile *p, struct pcap_pkthdr *header, u_char *packet, int flush);
+int rxtx_savefile_open(struct rxtx_savefile *p, const char *filename,
+                                                                 char *errbuf);
+int rxtx_savefile_dump(struct rxtx_savefile *p, struct pcap_pkthdr *header,
+                                                    u_char *packet, int flush);
 int rxtx_savefile_close(struct rxtx_savefile *p);
 
 #endif // _RXTX_SAVEFILE_H_

@@ -2,6 +2,8 @@
 
 set -e
 
+./test_ll.sh
+
 for i in tests/*/; do
   cd "$i"
   make test

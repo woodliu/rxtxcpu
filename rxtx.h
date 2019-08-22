@@ -31,7 +31,8 @@ struct rxtx_ring;
   for_each_ring_in_size((ring), (rtd)->args->ring_count)
 
 #define for_each_set_ring(ring, rtd) \
-  for_each_set_ring_in_size((ring), &((rtd)->args->ring_set), (rtd)->args->ring_count)
+  for_each_set_ring_in_size((ring), &((rtd)->args->ring_set), \
+                                                       (rtd)->args->ring_count)
 
 extern char *program_basename;
 extern volatile sig_atomic_t rxtx_breakloop;
