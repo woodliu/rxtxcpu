@@ -256,6 +256,11 @@ uintmax_t rxtx_get_packets_received(struct rxtx_desc *p) {
 }
 
 /* ========================================================================= */
+int rxtx_packet_buffered_isset(struct rxtx_desc *p) {
+  return p->args->packet_buffered;
+}
+
+/* ========================================================================= */
 int rxtx_packet_count_reached(struct rxtx_desc *p) {
   if (!p->args->packet_count) {
     return 0;
@@ -338,7 +343,7 @@ void *rxtx_loop(void *r) {
 
       int status;
       status = rxtx_savefile_dump(savefile, &header, packet,
-                                                        args->packet_buffered);
+                                              rxtx_packet_buffered_isset(rtd));
 
       if (status == RXTX_ERROR) {
         fprintf(stderr, "%s: %s\n", program_basename, errbuf);
