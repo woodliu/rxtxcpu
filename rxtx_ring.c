@@ -232,6 +232,11 @@ void rxtx_ring_clear_unreliable_packets_in_buffer(struct rxtx_ring *p) {
 }
 
 /* ========================================================================= */
+int rxtx_ring_get_idx(struct rxtx_ring *p) {
+  return p->idx;
+}
+
+/* ========================================================================= */
 uintmax_t rxtx_ring_get_packets_received(struct rxtx_ring *p) {
   return rxtx_stats_get_packets_received(p->stats);
 }
@@ -250,7 +255,7 @@ void *rxtx_ring_loop(void *ring) {
 
   if (rxtx_verbose_isset(p->rtd)) {
     fprintf(stderr, "Worker '%lu' handling ring '%d' running on cpu '%d'.\n",
-                                       pthread_self(), p->idx, sched_getcpu());
+                         pthread_self(), rxtx_ring_get_idx(p), sched_getcpu());
   }
 
   rxtx_ring_clear_unreliable_packets_in_buffer(p);
