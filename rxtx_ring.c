@@ -214,6 +214,11 @@ void rxtx_ring_clear_unreliable_packets_in_buffer(struct rxtx_ring *p) {
 }
 
 /* ========================================================================= */
+uintmax_t rxtx_ring_get_packets_received(struct rxtx_ring *p) {
+  return rxtx_stats_get_packets_received(p->stats);
+}
+
+/* ========================================================================= */
 int rxtx_ring_mark_packets_in_buffer_as_unreliable(struct rxtx_ring *p) {
   int status = rxtx_ring_update_tpacket_stats(p);
   if (status == RXTX_ERROR) {
