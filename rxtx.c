@@ -297,21 +297,19 @@ void rxtx_set_breakloop_global(void) {
 /* ----------------------------- end of setters ---------------------------- */
 
 /* ========================================================================= */
-void *rxtx_loop(void *r) {
-  struct rxtx_ring *ring = r;
-  struct rxtx_desc *rtd = ring->rtd;
-  struct rxtx_savefile *savefile = ring->savefile;
+void *rxtx_loop(void *ring) {
+  struct rxtx_ring *p = ring;
 
-  if (rxtx_verbose_isset(rtd)) {
+  if (rxtx_verbose_isset(p->rtd)) {
     fprintf(stderr, "Worker '%lu' handling ring '%d' running on cpu '%d'.\n",
-                                    pthread_self(), ring->idx, sched_getcpu());
+                                       pthread_self(), p->idx, sched_getcpu());
   }
 
-  rxtx_ring_clear_unreliable_packets_in_buffer(ring);
+  rxtx_ring_clear_unreliable_packets_in_buffer(p);
 
-  while (!rxtx_breakloop_isset(rtd)) {
+  while (!rxtx_breakloop_isset(p->rtd)) {
 
-    if (rxtx_packet_count_reached(rtd)) {
+    if (rxtx_packet_count_reached(p->rtd)) {
       break;
     }
 
@@ -319,25 +317,26 @@ void *rxtx_loop(void *r) {
     unsigned char packet[PACKET_BUFFER_SIZE];
 
     unsigned int sll_length = sizeof(sll);
-    int packet_length = recvfrom(ring->fd, packet, sizeof(packet), 0,
+    int packet_length = recvfrom(p->fd, packet, sizeof(packet), 0,
                                          (struct sockaddr *)&sll, &sll_length);
 
     if (packet_length == -1) {
       continue;
     }
 
-    if (rxtx_get_direction(rtd) == PCAP_D_OUT &&
+    if (rxtx_get_direction(p->rtd) == PCAP_D_OUT &&
                                                 packet_direction_is_rx(&sll)) {
       continue;
     }
 
-    if (rxtx_get_direction(rtd) == PCAP_D_IN && packet_direction_is_tx(&sll)) {
+    if (rxtx_get_direction(p->rtd) == PCAP_D_IN &&
+                                                packet_direction_is_tx(&sll)) {
       continue;
     }
 
-    rxtx_increment_counters(ring);
+    rxtx_increment_counters(p);
 
-    if (savefile) {
+    if (p->savefile) {
       /* no need for memset(), we're initializing every member */
       struct pcap_pkthdr header;
       header.caplen     = (bpf_u_int32)packet_length;
@@ -346,11 +345,11 @@ void *rxtx_loop(void *r) {
       header.ts.tv_usec = 0;
 
       int status;
-      status = rxtx_savefile_dump(savefile, &header, packet,
-                                              rxtx_packet_buffered_isset(rtd));
+      status = rxtx_savefile_dump(p->savefile, &header, packet,
+                                           rxtx_packet_buffered_isset(p->rtd));
 
       if (status == RXTX_ERROR) {
-        fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+        fprintf(stderr, "%s: %s\n", program_basename, p->errbuf);
         exit(EXIT_FAIL);
       }
     }
