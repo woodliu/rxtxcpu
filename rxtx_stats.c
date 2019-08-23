@@ -22,12 +22,16 @@ int rxtx_stats_init(struct rxtx_stats *p, char *errbuf) {
   p->errbuf = errbuf;
   p->packets_received = 0;
   p->packets_unreliable = 0;
+  p->tp_packets = 0;
+  p->tp_drops = 0;
 
   return 0;
 }
 
 /* ========================================================================= */
 int rxtx_stats_destroy(struct rxtx_stats *p) {
+  p->tp_drops = 0;
+  p->tp_packets = 0;
   p->packets_unreliable = 0;
   p->packets_received = 0;
   p->errbuf = NULL;
