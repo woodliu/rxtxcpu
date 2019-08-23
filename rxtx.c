@@ -203,12 +203,6 @@ static void rxtx_desc_destroy(struct rxtx_desc *p) {
 }
 
 /* ========================================================================= */
-static void rxtx_increment_counters(struct rxtx_ring *ring) {
-  rxtx_stats_increment_packets_received(ring->rtd->stats, INCREMENT_STEP);
-  rxtx_stats_increment_packets_received(ring->stats, INCREMENT_STEP);
-}
-
-/* ========================================================================= */
 int rxtx_open(struct rxtx_desc *rtd, struct rxtx_args *args) {
   rxtx_desc_init(rtd, args);
   return 0;
@@ -286,6 +280,16 @@ void rxtx_increment_initialized_ring_count(struct rxtx_desc *p) {
 }
 
 /* ========================================================================= */
+int rxtx_increment_packets_received(struct rxtx_desc *p) {
+  int status = rxtx_stats_increment_packets_received(p->stats, INCREMENT_STEP);
+  if (status == RXTX_ERROR) {
+    return RXTX_ERROR;
+  }
+
+  return 0;
+}
+
+/* ========================================================================= */
 void rxtx_set_breakloop(struct rxtx_desc *p) {
   p->breakloop++;
 }
@@ -334,7 +338,8 @@ void *rxtx_loop(void *ring) {
       continue;
     }
 
-    rxtx_increment_counters(p);
+    rxtx_increment_packets_received(p->rtd);
+    rxtx_stats_increment_packets_received(p->stats, INCREMENT_STEP);
 
     if (p->savefile) {
       /* no need for memset(), we're initializing every member */

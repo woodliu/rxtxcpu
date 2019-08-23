@@ -75,6 +75,7 @@ int rxtx_packet_count_reached(struct rxtx_desc *p);
 int rxtx_verbose_isset(struct rxtx_desc *p);
 
 void rxtx_increment_initialized_ring_count(struct rxtx_desc *rtd);
+int rxtx_increment_packets_received(struct rxtx_desc *p);
 void rxtx_set_breakloop(struct rxtx_desc *p);
 void rxtx_set_breakloop_global(void);
 
