@@ -10,13 +10,18 @@
 
 #include "rxtx_ring.h"
 #include "rxtx.h" // for rxtx_desc, rxtx_breakloop_isset(),
-                  //     rxtx_get_fanout_arg(), rxtx_get_ifindex(),
-                  //     rxtx_get_initialized_ring_count(),
-                  //     rxtx_increment_initialized_ring_count()
+                  //     rxtx_get_direction(), rxtx_get_fanout_arg(),
+                  //     rxtx_get_ifindex(), rxtx_get_initialized_ring_count(),
+                  //     rxtx_increment_packets_received(),
+                  //     rxtx_increment_initialized_ring_count(),
+                  //     rxtx_packet_buffered_isset(),
+                  //     rxtx_packet_count_reached()
 #include "rxtx_error.h"    // for RXTX_ERROR, rxtx_fill_errbuf()
-#include "rxtx_savefile.h" // for rxtx_savefile_close(), rxtx_savefile_open()
+#include "rxtx_savefile.h" // for rxtx_savefile_close(), rxtx_savefile_dump(),
+                           //     rxtx_savefile_open()
 #include "rxtx_stats.h"    // for rxtx_stats_destroy(),
                            //     rxtx_stats_get_packets_unreliable(),
+                           //     rxtx_stats_increment_packets_received(),
                            //     rxtx_stats_increment_packets_unreliable(),
                            //     rxtx_stats_increment_tp_packets(),
                            //     rxtx_stats_increment_tp_drops()
@@ -30,19 +35,27 @@
                              //     tpacket_stats
 #include <net/ethernet.h>    // for ETH_P_ALL
 #include <sys/socket.h>      // for AF_PACKET, bind(), getsockopt(),
-                             //     recv(), setsockopt(), SO_RCVTIMEO,
-                             //     SOCK_RAW, sockaddr, socket(), socklen_t,
-                             //     SOL_PACKET, SOL_SOCKET
+                             //     recv(), recvfrom(), setsockopt(),
+                             //     SO_RCVTIMEO, SOCK_RAW, sockaddr, socket(),
+                             //     socklen_t, SOL_PACKET, SOL_SOCKET
 #include <sys/time.h>        // for timeval
 
-#include <stdio.h>  // for asprintf()
-#include <stdlib.h> // for calloc(), free()
-#include <string.h> // for strcmp(), strdup(), strerror()
-#include <errno.h>  // for errno
+#include <errno.h>   // for errno
+#include <pcap.h>    // for bpf_u_int32, PCAP_D_IN, PCAP_D_OUT, pcap_pkthdr
+#include <pthread.h> // for pthread_self()
+#include <stdio.h>   // for asprintf(), fprintf(), NULL, stderr
+#include <stdlib.h>  // for calloc(), exit(), free()
+#include <string.h>  // for strcmp(), strdup(), strerror()
+#include <time.h>    // for time()
+
+#define EXIT_FAIL 1
 
 #define INCREMENT_STEP 1
 
 #define PACKET_BUFFER_SIZE 65535
+
+#define packet_direction_is_rx(sll) (!packet_direction_is_tx(sll))
+#define packet_direction_is_tx(sll) ((sll)->sll_pkttype == PACKET_OUTGOING)
 
 /* ========================================================================= */
 int rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, char *errbuf) {
@@ -221,6 +234,68 @@ void rxtx_ring_clear_unreliable_packets_in_buffer(struct rxtx_ring *p) {
 /* ========================================================================= */
 uintmax_t rxtx_ring_get_packets_received(struct rxtx_ring *p) {
   return rxtx_stats_get_packets_received(p->stats);
+}
+
+/* ========================================================================= */
+void *rxtx_ring_loop(void *ring) {
+  struct rxtx_ring *p = ring;
+
+  if (rxtx_verbose_isset(p->rtd)) {
+    fprintf(stderr, "Worker '%lu' handling ring '%d' running on cpu '%d'.\n",
+                                       pthread_self(), p->idx, sched_getcpu());
+  }
+
+  rxtx_ring_clear_unreliable_packets_in_buffer(p);
+
+  while (!rxtx_breakloop_isset(p->rtd)) {
+
+    if (rxtx_packet_count_reached(p->rtd)) {
+      break;
+    }
+
+    struct sockaddr_ll sll;
+    unsigned char packet[PACKET_BUFFER_SIZE];
+
+    unsigned int sll_length = sizeof(sll);
+    int packet_length = recvfrom(p->fd, packet, sizeof(packet), 0,
+                                         (struct sockaddr *)&sll, &sll_length);
+
+    if (packet_length == -1) {
+      continue;
+    }
+
+    if (rxtx_get_direction(p->rtd) == PCAP_D_OUT &&
+                                                packet_direction_is_rx(&sll)) {
+      continue;
+    }
+
+    if (rxtx_get_direction(p->rtd) == PCAP_D_IN &&
+                                                packet_direction_is_tx(&sll)) {
+      continue;
+    }
+
+    rxtx_increment_packets_received(p->rtd);
+    rxtx_stats_increment_packets_received(p->stats, INCREMENT_STEP);
+
+    if (p->savefile) {
+      /* no need for memset(), we're initializing every member */
+      struct pcap_pkthdr header;
+      header.caplen     = (bpf_u_int32)packet_length;
+      header.len        = (bpf_u_int32)packet_length;
+      header.ts.tv_sec  = time(NULL);
+      header.ts.tv_usec = 0;
+
+      int status;
+      status = rxtx_savefile_dump(p->savefile, &header, packet,
+                                           rxtx_packet_buffered_isset(p->rtd));
+
+      if (status == RXTX_ERROR) {
+        fprintf(stderr, "%s: %s\n", program_basename, p->errbuf);
+        exit(EXIT_FAIL);
+      }
+    }
+  }
+  return NULL;
 }
 
 /* ========================================================================= */

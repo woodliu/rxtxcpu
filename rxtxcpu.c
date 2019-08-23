@@ -14,9 +14,9 @@
                        //     RING_COUNT(), RING_ISSET(), RING_SET()
 #include "rxtx.h"      // for for_each_set_ring(), program_basename, rxtx_args,
                        //     rxtx_desc, rxtx_close(),
-                       //     rxtx_get_packets_received(), rxtx_loop(),
-                       //     rxtx_open()
-#include "rxtx_ring.h" // for rxtx_ring_get_packets_received()
+                       //     rxtx_get_packets_received(), rxtx_open()
+#include "rxtx_ring.h" // for rxtx_ring_get_packets_received(),
+                       //     rxtx_ring_loop()
 #include "sig.h"       // for setup_signals()
 
 #include <linux/if_packet.h> // for PACKET_FANOUT_CPU
@@ -402,7 +402,8 @@ int main(int argc, char **argv) {
     CPU_ZERO(&cpu_set);
     CPU_SET(i, &cpu_set);
     pthread_attr_setaffinity_np(&attr, sizeof(cpu_set), &cpu_set);
-    pthread_create(&threads[i], &attr, rxtx_loop, (void *)&(rtd.rings[i]));
+    pthread_create(&threads[i], &attr, rxtx_ring_loop,
+                                                      (void *)&(rtd.rings[i]));
   }
 
   /*
