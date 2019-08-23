@@ -66,6 +66,7 @@ void *rxtx_loop(void *r);
 
 int rxtx_breakloop_isset(struct rxtx_desc *p);
 int rxtx_get_initialized_ring_count(struct rxtx_desc *rtd);
+uintmax_t rxtx_get_packets_received(struct rxtx_desc *p);
 
 void rxtx_increment_initialized_ring_count(struct rxtx_desc *rtd);
 void rxtx_set_breakloop(struct rxtx_desc *p);

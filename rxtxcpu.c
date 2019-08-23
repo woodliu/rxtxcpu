@@ -13,7 +13,9 @@
 #include "ring_set.h"  // for for_each_ring_in_size(), RING_CLR(),
                        //     RING_COUNT(), RING_ISSET(), RING_SET()
 #include "rxtx.h"      // for for_each_set_ring(), program_basename, rxtx_args,
-                       //     rxtx_desc, rxtx_close(), rxtx_loop(), rxtx_open()
+                       //     rxtx_desc, rxtx_close(),
+                       //     rxtx_get_packets_received(), rxtx_loop(),
+                       //     rxtx_open()
 #include "rxtx_ring.h" // for rxtx_ring_get_packets_received()
 #include "sig.h"       // for setup_signals()
 
@@ -419,7 +421,8 @@ int main(int argc, char **argv) {
 
   pthread_attr_destroy(&attr);
 
-  fprintf(out, "%ju packets captured total.\n", rtd.stats->packets_received);
+  fprintf(out, "%ju packets captured total.\n",
+                                              rxtx_get_packets_received(&rtd));
 
   rxtx_close(&rtd);
 

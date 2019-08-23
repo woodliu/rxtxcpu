@@ -234,6 +234,11 @@ int rxtx_breakloop_isset(struct rxtx_desc *p) {
 int rxtx_get_initialized_ring_count(struct rxtx_desc *p) {
   return p->initialized_ring_count;
 }
+
+/* ========================================================================= */
+uintmax_t rxtx_get_packets_received(struct rxtx_desc *p) {
+  return rxtx_stats_get_packets_received(p->stats);
+}
 /* ----------------------------- end of getters ---------------------------- */
 
 /* ---------------------------- start of setters --------------------------- */
