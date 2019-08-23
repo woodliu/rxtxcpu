@@ -239,6 +239,19 @@ int rxtx_get_initialized_ring_count(struct rxtx_desc *p) {
 uintmax_t rxtx_get_packets_received(struct rxtx_desc *p) {
   return rxtx_stats_get_packets_received(p->stats);
 }
+
+/* ========================================================================= */
+int rxtx_packet_count_reached(struct rxtx_desc *p) {
+  if (!p->args->packet_count) {
+    return 0;
+  }
+
+  if (rxtx_stats_get_packets_received(p->stats) < p->args->packet_count) {
+    return 0;
+  }
+
+  return 1;
+}
 /* ----------------------------- end of getters ---------------------------- */
 
 /* ---------------------------- start of setters --------------------------- */
@@ -274,8 +287,7 @@ void *rxtx_loop(void *r) {
 
   while (!rxtx_breakloop_isset(rtd)) {
 
-    if (args->packet_count && rxtx_stats_get_packets_received(rtd->stats)
-                                                       >= args->packet_count) {
+    if (rxtx_packet_count_reached(rtd)) {
       break;
     }
 
