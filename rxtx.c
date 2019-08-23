@@ -301,7 +301,6 @@ void *rxtx_loop(void *r) {
   struct rxtx_ring *ring = r;
   struct rxtx_desc *rtd = ring->rtd;
   struct rxtx_savefile *savefile = ring->savefile;
-  struct rxtx_args *args = rtd->args;
 
   if (rxtx_verbose_isset(rtd)) {
     fprintf(stderr, "Worker '%lu' handling ring '%d' running on cpu '%d'.\n",
