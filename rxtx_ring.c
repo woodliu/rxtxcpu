@@ -9,7 +9,8 @@
 #define _GNU_SOURCE
 
 #include "rxtx_ring.h"
-#include "rxtx.h" // for rxtx_desc, rxtx_breakloop_isset(), rxtx_get_ifindex(),
+#include "rxtx.h" // for rxtx_desc, rxtx_breakloop_isset(),
+                  //     rxtx_get_fanout_arg(), rxtx_get_ifindex(),
                   //     rxtx_get_initialized_ring_count(),
                   //     rxtx_increment_initialized_ring_count()
 #include "rxtx_error.h"    // for RXTX_ERROR, rxtx_fill_errbuf()
@@ -140,9 +141,9 @@ int rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, char *errbuf) {
   }
 
   /*
-   * Add the socket to our fanout group using the fanout mode supplied.
+   * Add the socket to our fanout group using the set fanout mode and group id.
    */
-  int fanout_arg = (rtd->fanout_group_id | (rtd->args->fanout_mode << 16));
+  int fanout_arg = rxtx_get_fanout_arg(rtd);
   status = setsockopt(p->fd, SOL_PACKET, PACKET_FANOUT, &fanout_arg,
                                                            sizeof(fanout_arg));
   if (status == -1) {

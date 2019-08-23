@@ -231,6 +231,11 @@ int rxtx_breakloop_isset(struct rxtx_desc *p) {
 }
 
 /* ========================================================================= */
+int rxtx_get_fanout_arg(struct rxtx_desc *p) {
+  return p->fanout_group_id | (p->args->fanout_mode << 16);
+}
+
+/* ========================================================================= */
 unsigned int rxtx_get_ifindex(struct rxtx_desc *p) {
   return p->ifindex;
 }

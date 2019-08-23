@@ -65,6 +65,7 @@ int rxtx_close(struct rxtx_desc *rtd);
 void *rxtx_loop(void *r);
 
 int rxtx_breakloop_isset(struct rxtx_desc *p);
+int rxtx_get_fanout_arg(struct rxtx_desc *p);
 unsigned int rxtx_get_ifindex(struct rxtx_desc *p);
 int rxtx_get_initialized_ring_count(struct rxtx_desc *rtd);
 uintmax_t rxtx_get_packets_received(struct rxtx_desc *p);
