@@ -32,6 +32,8 @@ void rxtx_ring_clear_unreliable_packets_in_buffer(struct rxtx_ring *p);
 uintmax_t rxtx_ring_get_packets_received(struct rxtx_ring *p);
 void *rxtx_ring_loop(void *ring);
 int rxtx_ring_mark_packets_in_buffer_as_unreliable(struct rxtx_ring *p);
+int rxtx_ring_next_packet(struct rxtx_ring *p, struct pcap_pkthdr *header,
+                                                               u_char *packet);
 int rxtx_ring_savefile_open(struct rxtx_ring *p, const char *template);
 int rxtx_ring_update_tpacket_stats(struct rxtx_ring *p);
 
