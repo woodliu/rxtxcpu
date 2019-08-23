@@ -9,9 +9,9 @@
 #define _GNU_SOURCE
 
 #include "rxtx_ring.h"
-#include "rxtx.h"          // for rxtx_desc, rxtx_breakloop_isset(),
-                           //     rxtx_get_initialized_ring_count(),
-                           //     rxtx_increment_initialized_ring_count()
+#include "rxtx.h" // for rxtx_desc, rxtx_breakloop_isset(), rxtx_get_ifindex(),
+                  //     rxtx_get_initialized_ring_count(),
+                  //     rxtx_increment_initialized_ring_count()
 #include "rxtx_error.h"    // for RXTX_ERROR, rxtx_fill_errbuf()
 #include "rxtx_savefile.h" // for rxtx_savefile_close(), rxtx_savefile_open()
 #include "rxtx_stats.h"    // for rxtx_stats_destroy(),
@@ -131,7 +131,7 @@ int rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, char *errbuf) {
   memset(&sll, 0, sizeof(sll));
   sll.sll_family = AF_PACKET;
   sll.sll_protocol = htons(ETH_P_ALL);
-  sll.sll_ifindex = rtd->ifindex;
+  sll.sll_ifindex = rxtx_get_ifindex(rtd);
 
   status = bind(p->fd, (struct sockaddr *)&sll, sizeof(sll));
   if (status == -1) {

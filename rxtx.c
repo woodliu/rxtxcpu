@@ -231,6 +231,11 @@ int rxtx_breakloop_isset(struct rxtx_desc *p) {
 }
 
 /* ========================================================================= */
+unsigned int rxtx_get_ifindex(struct rxtx_desc *p) {
+  return p->ifindex;
+}
+
+/* ========================================================================= */
 int rxtx_get_initialized_ring_count(struct rxtx_desc *p) {
   return p->initialized_ring_count;
 }
