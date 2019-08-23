@@ -209,6 +209,10 @@ void rxtx_ring_clear_unreliable_packets_in_buffer(struct rxtx_ring *p) {
 
     /*
      * Otherwise, this packet should be treated as unreliable.
+     *
+     * NOTE: We don't check return here because ring stats should never have a
+     *       mutex and should therefore always return 0.
+     *
      */
     rxtx_stats_increment_packets_unreliable(p->stats, INCREMENT_STEP);
   }
