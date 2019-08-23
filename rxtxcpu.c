@@ -107,7 +107,20 @@ static void usage_short(void) {
 /* ========================================================================= */
 int main(int argc, char **argv) {
   program_basename = basename(argv[0]);
-  int i;
+
+  int c = 0;
+  int i = 0;
+  int worker_count = 0;
+
+  bool help = false;
+
+  char *badopt = NULL;
+  char *cpu_list = NULL;
+  char *cpu_mask = NULL;
+  char *endptr = NULL;
+
+  FILE *out = stdout;
+
   struct rxtx_args args;
   memset(&args, 0, sizeof(args));
 
@@ -141,13 +154,6 @@ int main(int argc, char **argv) {
   if (strcmp(program_basename, "txcpu") == 0) {
     args.direction = PCAP_D_OUT;
   }
-
-  int c;
-  char *badopt = NULL;
-  char *cpu_list = NULL;
-  char *cpu_mask = NULL;
-  char *endptr = NULL;
-  bool help = false;
 
   /*
    * optstring must start with ":" so ':' is returned for a missing option
@@ -312,7 +318,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  int worker_count = 0;
+  worker_count = 0;
   for_each_ring_in_size(i, args.ring_count) {
     if (RING_ISSET(i, &(args.ring_set))) {
       worker_count++;
@@ -410,7 +416,7 @@ int main(int argc, char **argv) {
    * This loop joins our threads and prints the per-ring, in this case per-cpu,
    * results.
    */
-  FILE *out = stdout;
+  out = stdout;
   if (args.savefile_template && strcmp(args.savefile_template, "-") == 0) {
     out = stderr;
   }
