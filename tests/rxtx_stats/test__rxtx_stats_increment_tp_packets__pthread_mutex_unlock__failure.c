@@ -18,8 +18,7 @@ int main(void) {
   char errbuf[RXTX_ERRBUF_SIZE];
   int status;
 
-  status = rxtx_stats_init(&rts, errbuf);
-  assert(status == 0);
+  rxtx_stats_init(&rts, errbuf);
 
   status = rxtx_stats_mutex_init(&rts);
   assert(status == 0);
