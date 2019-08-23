@@ -231,6 +231,11 @@ int rxtx_breakloop_isset(struct rxtx_desc *p) {
 }
 
 /* ========================================================================= */
+pcap_direction_t rxtx_get_direction(struct rxtx_desc *p) {
+  return p->args->direction;
+}
+
+/* ========================================================================= */
 int rxtx_get_fanout_arg(struct rxtx_desc *p) {
   return p->fanout_group_id | (p->args->fanout_mode << 16);
 }
@@ -312,11 +317,12 @@ void *rxtx_loop(void *r) {
       continue;
     }
 
-    if (args->direction == PCAP_D_OUT && packet_direction_is_rx(&sll)) {
+    if (rxtx_get_direction(rtd) == PCAP_D_OUT &&
+                                                packet_direction_is_rx(&sll)) {
       continue;
     }
 
-    if (args->direction == PCAP_D_IN && packet_direction_is_tx(&sll)) {
+    if (rxtx_get_direction(rtd) == PCAP_D_IN && packet_direction_is_tx(&sll)) {
       continue;
     }
 
