@@ -272,6 +272,11 @@ int rxtx_packet_count_reached(struct rxtx_desc *p) {
 
   return 1;
 }
+
+/* ========================================================================= */
+int rxtx_verbose_isset(struct rxtx_desc *p) {
+  return p->args->verbose;
+}
 /* ----------------------------- end of getters ---------------------------- */
 
 /* ---------------------------- start of setters --------------------------- */
@@ -298,7 +303,7 @@ void *rxtx_loop(void *r) {
   struct rxtx_savefile *savefile = ring->savefile;
   struct rxtx_args *args = rtd->args;
 
-  if (args->verbose) {
+  if (rxtx_verbose_isset(rtd)) {
     fprintf(stderr, "Worker '%lu' handling ring '%d' running on cpu '%d'.\n",
                                     pthread_self(), ring->idx, sched_getcpu());
   }
