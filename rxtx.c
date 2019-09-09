@@ -244,6 +244,11 @@ unsigned int rxtx_get_ifindex(struct rxtx_desc *p) {
 }
 
 /* ========================================================================= */
+const char *rxtx_get_ifname(struct rxtx_desc *p) {
+  return p->args->ifname;
+}
+
+/* ========================================================================= */
 int rxtx_get_initialized_ring_count(struct rxtx_desc *p) {
   return p->initialized_ring_count;
 }
