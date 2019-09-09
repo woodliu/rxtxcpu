@@ -61,20 +61,20 @@ struct rxtx_desc {
   char              *errbuf;
 };
 
-int rxtx_open(struct rxtx_desc *rtd, struct rxtx_args *args);
+int rxtx_open(struct rxtx_desc *p, struct rxtx_args *args);
 int rxtx_close(struct rxtx_desc *p);
 
 int rxtx_breakloop_isset(struct rxtx_desc *p);
 pcap_direction_t rxtx_get_direction(struct rxtx_desc *p);
 int rxtx_get_fanout_arg(struct rxtx_desc *p);
 unsigned int rxtx_get_ifindex(struct rxtx_desc *p);
-int rxtx_get_initialized_ring_count(struct rxtx_desc *rtd);
+int rxtx_get_initialized_ring_count(struct rxtx_desc *p);
 uintmax_t rxtx_get_packets_received(struct rxtx_desc *p);
 int rxtx_packet_buffered_isset(struct rxtx_desc *p);
 int rxtx_packet_count_reached(struct rxtx_desc *p);
 int rxtx_verbose_isset(struct rxtx_desc *p);
 
-void rxtx_increment_initialized_ring_count(struct rxtx_desc *rtd);
+void rxtx_increment_initialized_ring_count(struct rxtx_desc *p);
 int rxtx_increment_packets_received(struct rxtx_desc *p);
 void rxtx_set_breakloop(struct rxtx_desc *p);
 void rxtx_set_breakloop_global(void);

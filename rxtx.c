@@ -172,8 +172,8 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
 }
 
 /* ========================================================================= */
-int rxtx_open(struct rxtx_desc *rtd, struct rxtx_args *args) {
-  rxtx_desc_init(rtd, args);
+int rxtx_open(struct rxtx_desc *p, struct rxtx_args *args) {
+  rxtx_desc_init(p, args);
   return 0;
 }
 
