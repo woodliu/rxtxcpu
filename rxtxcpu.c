@@ -12,11 +12,19 @@
                        //     parse_cpu_mask()
 #include "ring_set.h"  // for for_each_ring_in_size(), RING_CLR(),
                        //     RING_COUNT(), RING_ISSET(), RING_SET()
-#include "rxtx.h"      // for for_each_set_ring(), program_basename, rxtx_args,
-                       //     rxtx_desc, rxtx_close(),
-                       //     rxtx_get_packets_received(), rxtx_open()
-#include "rxtx_error.h" // for RXTX_ERROR
-#include "rxtx_ring.h" // for rxtx_ring_get_packets_received(),
+#include "rxtx.h"      // for for_each_ring(), for_each_set_ring(),
+                       //     program_basename, rxtx_activate(), rxtx_close(),
+                       //     rxtx_desc, rxtx_get_packets_received(),
+                       //     rxtx_get_ring(), rxtx_get_ring_count(),
+                       //     rxtx_get_savefile_template(), rxtx_init(),
+                       //     rxtx_set_direction(), rxtx_set_fanout_mode(),
+                       //     rxtx_set_ifname(), rxtx_set_packet_buffered(),
+                       //     rxtx_set_promiscuous(), rxtx_set_ring_count(),
+                       //     rxtx_set_ring_set(),
+                       //     rxtx_set_savefile_template(), rxtx_set_verbose(),
+                       //     rxtx_verbose_isset()
+#include "rxtx_error.h" // for RXTX_ERRBUF_SIZE, RXTX_ERROR
+#include "rxtx_ring.h" // for rxtx_ring, rxtx_ring_get_packets_received(),
                        //     rxtx_ring_loop()
 #include "sig.h"       // for setup_signals()
 
@@ -113,6 +121,7 @@ int main(int argc, char **argv) {
   program_basename = basename(argv[0]);
 
   int c = 0;
+  int cpus = 0;
   int i = 0;
   int status = 0;
   int worker_count = 0;
@@ -126,8 +135,12 @@ int main(int argc, char **argv) {
 
   FILE *out = stdout;
 
-  struct rxtx_args args;
-  memset(&args, 0, sizeof(args));
+  char errbuf[RXTX_ERRBUF_SIZE] = "";
+
+  struct rxtx_desc rtd;
+  rxtx_init(&rtd, errbuf);
+
+  struct rxtx_ring* ring;
 
   /*
    * Per packet(7), "PACKET_FANOUT_CPU selects the socket based on the CPU that
@@ -143,22 +156,32 @@ int main(int argc, char **argv) {
    * need one socket per processor added to the fanout group in processor id
    * order.
    *
-   * rxtx_open() will handle the ordering, we just need to set the fanout mode.
+   * rxtx_activate() will handle the ordering, we just need to set the fanout
+   * mode.
    */
-  args.fanout_mode = PACKET_FANOUT_CPU;
+  status = rxtx_set_fanout_mode(&rtd, PACKET_FANOUT_CPU);
+  if (status == RXTX_ERROR) {
+    fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+    return EXIT_FAIL;
+  }
 
   /*
    * direction default is based on the invocation.
    */
-  args.direction = PCAP_D_INOUT;
-
   if (strcmp(program_basename, "rxcpu") == 0) {
-    args.direction = PCAP_D_IN;
+    status = rxtx_set_direction(&rtd, PCAP_D_IN);
+  } else if (strcmp(program_basename, "txcpu") == 0) {
+    status = rxtx_set_direction(&rtd, PCAP_D_OUT);
+  } else {
+    status = rxtx_set_direction(&rtd, PCAP_D_INOUT);
+  }
+  if (status == RXTX_ERROR) {
+    fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+    return EXIT_FAIL;
   }
 
-  if (strcmp(program_basename, "txcpu") == 0) {
-    args.direction = PCAP_D_OUT;
-  }
+  ring_set_t ring_set;
+  RING_ZERO(&ring_set);
 
   /*
    * optstring must start with ":" so ':' is returned for a missing option
@@ -169,7 +192,12 @@ int main(int argc, char **argv) {
                                                                        != -1) {
     switch (c) {
       case 'c':
-        args.packet_count = strtoumax(optarg, &endptr, OPTION_COUNT_BASE);
+        status = rxtx_set_packet_count(&rtd, strtoumax(optarg, &endptr,
+                                                           OPTION_COUNT_BASE));
+        if (status == RXTX_ERROR) {
+          fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+          return EXIT_FAIL;
+        }
         if (*endptr) {
           fprintf(stderr, "%s: Invalid count '%s'.\n", program_basename,
                                                                        optarg);
@@ -180,16 +208,20 @@ int main(int argc, char **argv) {
 
       case 'd':
         if (strcmp(optarg, "rx") == 0) {
-          args.direction = PCAP_D_IN;
+          status = rxtx_set_direction(&rtd, PCAP_D_IN);
         } else if (strcmp(optarg, "tx") == 0) {
-          args.direction = PCAP_D_OUT;
+          status = rxtx_set_direction(&rtd, PCAP_D_OUT);
         } else if (strcmp(optarg, "rxtx") == 0) {
-          args.direction = PCAP_D_INOUT;
+          status = rxtx_set_direction(&rtd, PCAP_D_INOUT);
         } else {
           fprintf(stderr, "%s: Invalid direction '%s'.\n", program_basename,
                                                                        optarg);
           usage_short();
           return EXIT_FAIL_OPTION;
+        }
+        if (status == RXTX_ERROR) {
+          fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+          return EXIT_FAIL;
         }
         break;
 
@@ -199,7 +231,7 @@ int main(int argc, char **argv) {
 
       case 'l':
         cpu_list = optarg;
-        if (parse_cpu_list(optarg, &(args.ring_set))) {
+        if (parse_cpu_list(optarg, &ring_set)) {
           fprintf(stderr, "%s: Invalid cpu list '%s'.\n", program_basename,
                                                                        optarg);
           usage_short();
@@ -209,7 +241,7 @@ int main(int argc, char **argv) {
 
       case 'm':
         cpu_mask = optarg;
-        if (parse_cpu_mask(optarg, &(args.ring_set))) {
+        if (parse_cpu_mask(optarg, &ring_set)) {
           fprintf(stderr, "%s: Invalid cpu mask '%s'.\n", program_basename,
                                                                        optarg);
           usage_short();
@@ -218,15 +250,23 @@ int main(int argc, char **argv) {
         break;
 
       case 'p':
-        args.promiscuous = true;
+        status = rxtx_set_promiscuous(&rtd);
+        if (status == RXTX_ERROR) {
+          fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+          return EXIT_FAIL;
+        }
         break;
 
       case 'U':
-        args.packet_buffered = true;
+        status = rxtx_set_packet_buffered(&rtd);
+        if (status == RXTX_ERROR) {
+          fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+          return EXIT_FAIL;
+        }
         break;
 
       case 'v':
-        args.verbose = true;
+        rxtx_set_verbose(&rtd);
         break;
 
       case 'V':
@@ -234,7 +274,11 @@ int main(int argc, char **argv) {
         return EXIT_OK;
 
       case 'w':
-        args.savefile_template = optarg;
+        status = rxtx_set_savefile_template(&rtd, optarg);
+        if (status == RXTX_ERROR) {
+          fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+          return EXIT_FAIL;
+        }
         break;
 
       case ':':  /* missing option argument */
@@ -307,25 +351,31 @@ int main(int argc, char **argv) {
   /*
    * We need to know how many processors are configured.
    */
-  args.ring_count = sysconf(_SC_NPROCESSORS_CONF);
-  if (args.ring_count <= 0) {
+  cpus = sysconf(_SC_NPROCESSORS_CONF);
+  if (cpus <= 0) {
     fprintf(stderr, "%s: Failed to get processor count.\n", program_basename);
     return EXIT_FAIL;
   }
 
-  if (args.verbose) {
-    fprintf(stderr, "Found '%d' processors.\n", args.ring_count);
+  status = rxtx_set_ring_count(&rtd, cpus);
+  if (status == RXTX_ERROR) {
+    fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+    return EXIT_FAIL;
   }
 
-  if (RING_COUNT(&(args.ring_set)) == 0) {
-    for_each_ring_in_size(i, args.ring_count) {
-      RING_SET(i, &(args.ring_set));
+  if (rxtx_verbose_isset(&rtd)) {
+    fprintf(stderr, "Found '%d' processors.\n", rxtx_get_ring_count(&rtd));
+  }
+
+  if (RING_COUNT(&ring_set) == 0) {
+    for_each_ring(i, &rtd) {
+      RING_SET(i, &ring_set);
     }
   }
 
   worker_count = 0;
-  for_each_ring_in_size(i, args.ring_count) {
-    if (RING_ISSET(i, &(args.ring_set))) {
+  for_each_ring(i, &rtd) {
+    if (RING_ISSET(i, &ring_set)) {
       worker_count++;
     }
   }
@@ -342,11 +392,11 @@ int main(int argc, char **argv) {
     return EXIT_FAIL_OPTION;
   }
 
-  if (CPU_COUNT(&online_cpu_set) != args.ring_count) {
-    for_each_ring_in_size(i, args.ring_count) {
+  if (CPU_COUNT(&online_cpu_set) != rxtx_get_ring_count(&rtd)) {
+    for_each_ring(i, &rtd) {
       if (!CPU_ISSET(i, &online_cpu_set)) {
-        RING_CLR(i, &(args.ring_set));
-        if (args.verbose) {
+        RING_CLR(i, &ring_set);
+        if (rxtx_verbose_isset(&rtd)) {
           fprintf(stderr, "Skipping cpu '%d' since it is offline.\n", i);
         }
       }
@@ -354,8 +404,8 @@ int main(int argc, char **argv) {
   }
 
   worker_count = 0;
-  for_each_ring_in_size(i, args.ring_count) {
-    if (RING_ISSET(i, &(args.ring_set))) {
+  for_each_ring(i, &rtd) {
+    if (RING_ISSET(i, &ring_set)) {
       worker_count++;
     }
   }
@@ -366,12 +416,19 @@ int main(int argc, char **argv) {
     return EXIT_FAIL_OPTION;
   }
 
-  if (args.savefile_template && strcmp(args.savefile_template, "-") == 0 &&
-                                           RING_COUNT(&(args.ring_set)) != 1) {
+  if (rxtx_get_savefile_template(&rtd) &&
+                          strcmp(rxtx_get_savefile_template(&rtd), "-") == 0 &&
+                                                  RING_COUNT(&ring_set) != 1) {
     fprintf(stderr, "%s: Write file '-' (stdout) is only permitted when"
                             " capturing on a single cpu.\n", program_basename);
     usage_short();
     return EXIT_FAIL_OPTION;
+  }
+
+  status = rxtx_set_ring_set(&rtd, &ring_set);
+  if (status == RXTX_ERROR) {
+    fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+    return EXIT_FAIL;
   }
 
   if ((optind + 1) < argc) {
@@ -388,11 +445,18 @@ int main(int argc, char **argv) {
   }
 
   if (optind != argc) {
-    args.ifname = argv[optind];
+    status = rxtx_set_ifname(&rtd, argv[optind]);
+    if (status == RXTX_ERROR) {
+      fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+      return EXIT_FAIL;
+    }
   }
 
-  struct rxtx_desc rtd;
-  rxtx_open(&rtd, &args);
+  status = rxtx_activate(&rtd);
+  if (status == RXTX_ERROR) {
+    fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+    return EXIT_FAIL;
+  }
 
   /*
    * Setup our signal handlers before spinning up threads.
@@ -413,8 +477,13 @@ int main(int argc, char **argv) {
     CPU_ZERO(&cpu_set);
     CPU_SET(i, &cpu_set);
     pthread_attr_setaffinity_np(&attr, sizeof(cpu_set), &cpu_set);
-    pthread_create(&threads[i], &attr, rxtx_ring_loop,
-                                                      (void *)&(rtd.rings[i]));
+
+    ring = rxtx_get_ring(&rtd, (unsigned int)i);
+    if (!ring) {
+      fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+      return EXIT_FAIL;
+    }
+    pthread_create(&threads[i], &attr, rxtx_ring_loop, (void *)ring);
   }
 
   /*
@@ -447,7 +516,7 @@ int main(int argc, char **argv) {
 
         joined[i] = 1;
         if ((intptr_t)vpstatus == (intptr_t)RXTX_ERROR) {
-          fprintf(stderr, "%s: %s\n", program_basename, rtd.errbuf);
+          fprintf(stderr, "%s: %s\n", program_basename, errbuf);
           return EXIT_FAIL;
         }
       }
@@ -470,9 +539,16 @@ int main(int argc, char **argv) {
                           strcmp(rxtx_get_savefile_template(&rtd), "-") == 0) {
     out = stderr;
   }
+
   for_each_set_ring(i, &rtd) {
+    ring = rxtx_get_ring(&rtd, (unsigned int)i);
+    if (!ring) {
+      fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+      return EXIT_FAIL;
+    }
+
     fprintf(out, "%ju packets captured on cpu%d.\n",
-                           rxtx_ring_get_packets_received(&(rtd.rings[i])), i);
+                                      rxtx_ring_get_packets_received(ring), i);
   }
 
   fprintf(out, "%ju packets captured total.\n",
@@ -480,7 +556,7 @@ int main(int argc, char **argv) {
 
   status = rxtx_close(&rtd);
   if (status == RXTX_ERROR) {
-    fprintf(stderr, "%s: %s\n", program_basename, rtd.errbuf);
+    fprintf(stderr, "%s: %s\n", program_basename, errbuf);
     return EXIT_FAIL;
   }
 
