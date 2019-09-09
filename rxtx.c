@@ -172,41 +172,42 @@ static void rxtx_desc_init(struct rxtx_desc *p, struct rxtx_args *args) {
 }
 
 /* ========================================================================= */
-static void rxtx_desc_destroy(struct rxtx_desc *p) {
-  int i, status;
-
-  p->breakloop = 0;
-  p->fanout_group_id = 0;
-  p->ifindex = 0;
-  rxtx_stats_destroy_with_mutex(p->stats);
-  free(p->stats);
-  p->stats = NULL;
-  for_each_ring(i, p) {
-    status = rxtx_ring_destroy(&(p->rings[i]));
-    if (status == RXTX_ERROR) {
-      fprintf(stderr, "%s: %s\n", program_basename, errbuf);
-      exit(EXIT_FAIL);
-    }
-  }
-  free(p->rings);
-  p->rings = NULL;
-  p->args = NULL;
-
-  p->errbuf = NULL;
-}
-
-/* ========================================================================= */
 int rxtx_open(struct rxtx_desc *rtd, struct rxtx_args *args) {
   rxtx_desc_init(rtd, args);
   return 0;
 }
 
 /* ========================================================================= */
-int rxtx_close(struct rxtx_desc *rtd) {
-  rxtx_desc_destroy(rtd);
+int rxtx_close(struct rxtx_desc *p) {
+  int i, status;
+
+  p->breakloop = 0;
+  p->fanout_group_id = 0;
+  p->ifindex = 0;
+
+  status = rxtx_stats_destroy_with_mutex(p->stats);
+  if (status == RXTX_ERROR) {
+    return RXTX_ERROR;
+  }
+
+  free(p->stats);
+  p->stats = NULL;
+
+  for_each_ring(i, p) {
+    status = rxtx_ring_destroy(&(p->rings[i]));
+    if (status == RXTX_ERROR) {
+      return RXTX_ERROR;
+    }
+  }
+
+  free(p->rings);
+  p->rings = NULL;
+
+  p->args = NULL;
+  p->errbuf = NULL;
+
   return 0;
 }
-
 
 /* ---------------------------- start of getters --------------------------- */
 /* ========================================================================= */

@@ -477,7 +477,11 @@ int main(int argc, char **argv) {
   fprintf(out, "%ju packets captured total.\n",
                                               rxtx_get_packets_received(&rtd));
 
-  rxtx_close(&rtd);
+  status = rxtx_close(&rtd);
+  if (status == RXTX_ERROR) {
+    fprintf(stderr, "%s: %s\n", program_basename, rtd.errbuf);
+    return EXIT_FAIL;
+  }
 
   return EXIT_OK;
 }

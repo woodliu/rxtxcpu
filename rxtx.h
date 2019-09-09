@@ -62,7 +62,7 @@ struct rxtx_desc {
 };
 
 int rxtx_open(struct rxtx_desc *rtd, struct rxtx_args *args);
-int rxtx_close(struct rxtx_desc *rtd);
+int rxtx_close(struct rxtx_desc *p);
 
 int rxtx_breakloop_isset(struct rxtx_desc *p);
 pcap_direction_t rxtx_get_direction(struct rxtx_desc *p);
