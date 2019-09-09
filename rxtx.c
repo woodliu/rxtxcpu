@@ -229,6 +229,16 @@ int rxtx_get_fanout_arg(struct rxtx_desc *p) {
 }
 
 /* ========================================================================= */
+int rxtx_get_fanout_group_id(struct rxtx_desc *p) {
+  return p->fanout_group_id;
+}
+
+/* ========================================================================= */
+int rxtx_get_fanout_mode(struct rxtx_desc *p) {
+  return p->args->fanout_mode;
+ }
+
+/* ========================================================================= */
 unsigned int rxtx_get_ifindex(struct rxtx_desc *p) {
   return p->ifindex;
 }
