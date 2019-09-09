@@ -43,6 +43,7 @@
 #include <errno.h>   // for errno
 #include <pcap.h>    // for bpf_u_int32, PCAP_D_IN, PCAP_D_OUT, pcap_pkthdr
 #include <pthread.h> // for pthread_self()
+#include <sched.h>   // for sched_getcpu()
 #include <stdio.h>   // for asprintf(), fprintf(), NULL, stderr
 #include <stdlib.h>  // for calloc(), exit(), free()
 #include <string.h>  // for memset(), strcmp(), strdup(), strerror()

@@ -29,7 +29,6 @@
 #include <net/if.h>     // for if_nametoindex()
 #include <sys/socket.h> // for setsockopt()
 
-#include <sched.h>  // for sched_getcpu()
 #include <stdio.h>  // for fprintf(), NULL, stderr
 #include <stdlib.h> // for calloc(), exit(), free()
 #include <unistd.h> // for getpid()
