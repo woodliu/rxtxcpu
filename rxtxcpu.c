@@ -8,13 +8,16 @@
 
 #define _GNU_SOURCE // for GNU basename()
 
-#include "cpu.h"      // for get_online_cpu_set(), parse_cpu_list(),
-                      //     parse_cpu_mask()
-#include "ring_set.h" // for for_each_ring_in_size(), RING_CLR(), RING_COUNT(),
-                      //     RING_ISSET(), RING_SET()
-#include "rxtx.h"     // for for_each_set_ring(), program_basename, rxtx_args,
-                      //     rxtx_desc, rxtx_close(), rxtx_loop(), rxtx_open()
-#include "sig.h"      // for setup_signals()
+#include "cpu.h"       // for get_online_cpu_set(), parse_cpu_list(),
+                       //     parse_cpu_mask()
+#include "ring_set.h"  // for for_each_ring_in_size(), RING_CLR(),
+                       //     RING_COUNT(), RING_ISSET(), RING_SET()
+#include "rxtx.h"      // for for_each_set_ring(), program_basename, rxtx_args,
+                       //     rxtx_desc, rxtx_close(),
+                       //     rxtx_get_packets_received(), rxtx_open()
+#include "rxtx_ring.h" // for rxtx_ring_get_packets_received(),
+                       //     rxtx_ring_loop()
+#include "sig.h"       // for setup_signals()
 
 #include <linux/if_packet.h> // for PACKET_FANOUT_CPU
 
@@ -399,7 +402,8 @@ int main(int argc, char **argv) {
     CPU_ZERO(&cpu_set);
     CPU_SET(i, &cpu_set);
     pthread_attr_setaffinity_np(&attr, sizeof(cpu_set), &cpu_set);
-    pthread_create(&threads[i], &attr, rxtx_loop, (void *)&(rtd.rings[i]));
+    pthread_create(&threads[i], &attr, rxtx_ring_loop,
+                                                      (void *)&(rtd.rings[i]));
   }
 
   /*
@@ -413,12 +417,13 @@ int main(int argc, char **argv) {
   for_each_set_ring(i, &rtd) {
     pthread_join(threads[i], NULL);
     fprintf(out, "%ju packets captured on cpu%d.\n",
-                                      rtd.rings[i].stats->packets_received, i);
+                           rxtx_ring_get_packets_received(&(rtd.rings[i])), i);
   }
 
   pthread_attr_destroy(&attr);
 
-  fprintf(out, "%ju packets captured total.\n", rtd.stats->packets_received);
+  fprintf(out, "%ju packets captured total.\n",
+                                              rxtx_get_packets_received(&rtd));
 
   rxtx_close(&rtd);
 

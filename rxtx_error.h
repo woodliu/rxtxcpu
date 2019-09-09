@@ -13,7 +13,9 @@
 #include <string.h> // for strlen()
 
 #define RXTX_ERRBUF_SIZE 512
-#define RXTX_ERROR -1
+
+#define RXTX_ERROR   -1
+#define RXTX_TIMEOUT -2
 
 #define rxtx_fill_errbuf(buf, ...)                           \
   do {                                                       \

@@ -21,10 +21,10 @@ struct rxtx_stats {
   char *errbuf;
 };
 
-int rxtx_stats_init(struct rxtx_stats *p, char *errbuf);
+void rxtx_stats_init(struct rxtx_stats *p, char *errbuf);
 int rxtx_stats_init_with_mutex(struct rxtx_stats *p, char *errbuf);
 
-int rxtx_stats_destroy(struct rxtx_stats *p);
+void rxtx_stats_destroy(struct rxtx_stats *p);
 int rxtx_stats_destroy_with_mutex(struct rxtx_stats *p);
 
 int rxtx_stats_mutex_init(struct rxtx_stats *p);

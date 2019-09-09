@@ -12,42 +12,31 @@
 
 #include "rxtx.h"
 
-#include "rxtx_error.h"    // for RXTX_ERRBUF_SIZE, RXTX_ERROR
-#include "rxtx_ring.h" // for rxtx_ring_clear_unreliable_packets_in_buffer(),
-                       //     rxtx_ring_destroy(), rxtx_ring_init(),
+#include "rxtx_error.h" // for RXTX_ERRBUF_SIZE, RXTX_ERROR
+#include "rxtx_ring.h" // for rxtx_ring_destroy(), rxtx_ring_init(),
                        //     rxtx_ring_mark_packets_in_buffer_as_unreliable(),
                        //     rxtx_ring_savefile_open()
-#include "rxtx_savefile.h" // for rxtx_savefile_dump()
-#include "rxtx_stats.h"    // for rxtx_stats_destroy_with_mutex(),
-                           //     rxtx_stats_get_packets_received(),
-                           //     rxtx_stats_get_packets_unreliable(),
-                           //     rxtx_stats_increment_packets_received(),
-                           //     rxtx_stats_increment_packets_unreliable(),
-                           //     rxtx_stats_init_with_mutex()
+#include "rxtx_stats.h" // for rxtx_stats_destroy_with_mutex(),
+                        //     rxtx_stats_get_packets_received(),
+                        //     rxtx_stats_get_packets_unreliable(),
+                        //     rxtx_stats_increment_packets_received(),
+                        //     rxtx_stats_increment_packets_unreliable(),
+                        //     rxtx_stats_init_with_mutex()
 
 #include "interface.h" // for interface_set_promisc_on()
 #include "sig.h"       // for keep_running
 
-#include <linux/if_packet.h> // for PACKET_OUTGOING, sockaddr_ll
-#include <net/if.h>          // for if_nametoindex()
-#include <sys/socket.h>      // for recvfrom(), setsockopt(), sockaddr,
+#include <net/if.h>     // for if_nametoindex()
+#include <sys/socket.h> // for setsockopt()
 
-#include <pcap.h>     // for bpf_u_int32, PCAP_D_IN, PCAP_D_OUT, pcap_pkthdr
-#include <pthread.h>  // for pthread_self()
-#include <sched.h>    // for sched_getcpu()
-#include <stdio.h>    // for fprintf(), NULL, stderr
-#include <stdlib.h>   // for calloc(), exit(), free()
-#include <time.h>     // for time()
-#include <unistd.h>   // for getpid()
+#include <sched.h>  // for sched_getcpu()
+#include <stdio.h>  // for fprintf(), NULL, stderr
+#include <stdlib.h> // for calloc(), exit(), free()
+#include <unistd.h> // for getpid()
 
 #define EXIT_FAIL 1
 
 #define INCREMENT_STEP 1
-
-#define PACKET_BUFFER_SIZE 65535
-
-#define packet_direction_is_rx(sll) (!packet_direction_is_tx(sll))
-#define packet_direction_is_tx(sll) ((sll)->sll_pkttype == PACKET_OUTGOING)
 
 char errbuf[RXTX_ERRBUF_SIZE] = "";
 char *program_basename = NULL;
@@ -203,12 +192,6 @@ static void rxtx_desc_destroy(struct rxtx_desc *p) {
 }
 
 /* ========================================================================= */
-static void rxtx_increment_counters(struct rxtx_ring *ring) {
-  rxtx_stats_increment_packets_received(ring->rtd->stats, INCREMENT_STEP);
-  rxtx_stats_increment_packets_received(ring->stats, INCREMENT_STEP);
-}
-
-/* ========================================================================= */
 int rxtx_open(struct rxtx_desc *rtd, struct rxtx_args *args) {
   rxtx_desc_init(rtd, args);
   return 0;
@@ -231,8 +214,51 @@ int rxtx_breakloop_isset(struct rxtx_desc *p) {
 }
 
 /* ========================================================================= */
+pcap_direction_t rxtx_get_direction(struct rxtx_desc *p) {
+  return p->args->direction;
+}
+
+/* ========================================================================= */
+int rxtx_get_fanout_arg(struct rxtx_desc *p) {
+  return p->fanout_group_id | (p->args->fanout_mode << 16);
+}
+
+/* ========================================================================= */
+unsigned int rxtx_get_ifindex(struct rxtx_desc *p) {
+  return p->ifindex;
+}
+
+/* ========================================================================= */
 int rxtx_get_initialized_ring_count(struct rxtx_desc *p) {
   return p->initialized_ring_count;
+}
+
+/* ========================================================================= */
+uintmax_t rxtx_get_packets_received(struct rxtx_desc *p) {
+  return rxtx_stats_get_packets_received(p->stats);
+}
+
+/* ========================================================================= */
+int rxtx_packet_buffered_isset(struct rxtx_desc *p) {
+  return p->args->packet_buffered;
+}
+
+/* ========================================================================= */
+int rxtx_packet_count_reached(struct rxtx_desc *p) {
+  if (!p->args->packet_count) {
+    return 0;
+  }
+
+  if (rxtx_stats_get_packets_received(p->stats) < p->args->packet_count) {
+    return 0;
+  }
+
+  return 1;
+}
+
+/* ========================================================================= */
+int rxtx_verbose_isset(struct rxtx_desc *p) {
+  return p->args->verbose;
 }
 /* ----------------------------- end of getters ---------------------------- */
 
@@ -240,6 +266,16 @@ int rxtx_get_initialized_ring_count(struct rxtx_desc *p) {
 /* ========================================================================= */
 void rxtx_increment_initialized_ring_count(struct rxtx_desc *p) {
   p->initialized_ring_count++;
+}
+
+/* ========================================================================= */
+int rxtx_increment_packets_received(struct rxtx_desc *p) {
+  int status = rxtx_stats_increment_packets_received(p->stats, INCREMENT_STEP);
+  if (status == RXTX_ERROR) {
+    return RXTX_ERROR;
+  }
+
+  return 0;
 }
 
 /* ========================================================================= */
@@ -252,66 +288,3 @@ void rxtx_set_breakloop_global(void) {
   rxtx_breakloop = 1;
 }
 /* ----------------------------- end of setters ---------------------------- */
-
-/* ========================================================================= */
-void *rxtx_loop(void *r) {
-  struct rxtx_ring *ring = r;
-  struct rxtx_desc *rtd = ring->rtd;
-  struct rxtx_savefile *savefile = ring->savefile;
-  struct rxtx_args *args = rtd->args;
-
-  if (args->verbose) {
-    fprintf(stderr, "Worker '%lu' handling ring '%d' running on cpu '%d'.\n",
-                                    pthread_self(), ring->idx, sched_getcpu());
-  }
-
-  rxtx_ring_clear_unreliable_packets_in_buffer(ring);
-
-  while (!rxtx_breakloop_isset(rtd)) {
-
-    if (args->packet_count && rxtx_stats_get_packets_received(rtd->stats)
-                                                       >= args->packet_count) {
-      break;
-    }
-
-    struct sockaddr_ll sll;
-    unsigned char packet[PACKET_BUFFER_SIZE];
-
-    unsigned int sll_length = sizeof(sll);
-    int packet_length = recvfrom(ring->fd, packet, sizeof(packet), 0,
-                                         (struct sockaddr *)&sll, &sll_length);
-
-    if (packet_length == -1) {
-      continue;
-    }
-
-    if (args->direction == PCAP_D_OUT && packet_direction_is_rx(&sll)) {
-      continue;
-    }
-
-    if (args->direction == PCAP_D_IN && packet_direction_is_tx(&sll)) {
-      continue;
-    }
-
-    rxtx_increment_counters(ring);
-
-    if (savefile) {
-      /* no need for memset(), we're initializing every member */
-      struct pcap_pkthdr header;
-      header.caplen     = (bpf_u_int32)packet_length;
-      header.len        = (bpf_u_int32)packet_length;
-      header.ts.tv_sec  = time(NULL);
-      header.ts.tv_usec = 0;
-
-      int status;
-      status = rxtx_savefile_dump(savefile, &header, packet,
-                                                        args->packet_buffered);
-
-      if (status == RXTX_ERROR) {
-        fprintf(stderr, "%s: %s\n", program_basename, errbuf);
-        exit(EXIT_FAIL);
-      }
-    }
-  }
-  return NULL;
-}
