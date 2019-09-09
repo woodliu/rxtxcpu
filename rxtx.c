@@ -269,6 +269,11 @@ int rxtx_get_ring_count(struct rxtx_desc *p) {
 }
 
 /* ========================================================================= */
+const ring_set_t *rxtx_get_ring_set(struct rxtx_desc *p) {
+  return &(p->args->ring_set);
+}
+
+/* ========================================================================= */
 int rxtx_packet_buffered_isset(struct rxtx_desc *p) {
   return p->args->packet_buffered;
 }
