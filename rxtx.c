@@ -254,6 +254,11 @@ int rxtx_get_initialized_ring_count(struct rxtx_desc *p) {
 }
 
 /* ========================================================================= */
+uintmax_t rxtx_get_packet_count(struct rxtx_desc *p) {
+  return p->args->packet_count;
+}
+
+/* ========================================================================= */
 uintmax_t rxtx_get_packets_received(struct rxtx_desc *p) {
   return rxtx_stats_get_packets_received(p->stats);
 }
