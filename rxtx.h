@@ -74,6 +74,7 @@ const char *rxtx_get_ifname(struct rxtx_desc *p);
 int rxtx_get_initialized_ring_count(struct rxtx_desc *p);
 uintmax_t rxtx_get_packet_count(struct rxtx_desc *p);
 uintmax_t rxtx_get_packets_received(struct rxtx_desc *p);
+int rxtx_get_ring_count(struct rxtx_desc *p);
 int rxtx_packet_buffered_isset(struct rxtx_desc *p);
 int rxtx_packet_count_reached(struct rxtx_desc *p);
 int rxtx_promiscuous_isset(struct rxtx_desc *p);

@@ -264,6 +264,11 @@ uintmax_t rxtx_get_packets_received(struct rxtx_desc *p) {
 }
 
 /* ========================================================================= */
+int rxtx_get_ring_count(struct rxtx_desc *p) {
+  return p->args->ring_count;
+}
+
+/* ========================================================================= */
 int rxtx_packet_buffered_isset(struct rxtx_desc *p) {
   return p->args->packet_buffered;
 }

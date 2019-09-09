@@ -405,7 +405,7 @@ int main(int argc, char **argv) {
    * receive packets for that processor.
    */
   cpu_set_t cpu_set;
-  pthread_t threads[args.ring_count];
+  pthread_t threads[rxtx_get_ring_count(&rtd)];
   pthread_attr_t attr;
   pthread_attr_init(&attr);
 
@@ -424,8 +424,8 @@ int main(int argc, char **argv) {
 
   void *vpstatus = NULL;
 
-  int joined[args.ring_count];
-  memset(joined, 0, sizeof(int) * args.ring_count);
+  int joined[rxtx_get_ring_count(&rtd)];
+  memset(joined, 0, sizeof(int) * rxtx_get_ring_count(&rtd));
 
   while (1) {
     ebusy = 0;
