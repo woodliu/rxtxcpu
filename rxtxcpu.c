@@ -466,7 +466,8 @@ int main(int argc, char **argv) {
    * This loop prints our per-ring, in this case per-cpu, results.
    */
   out = stdout;
-  if (args.savefile_template && strcmp(args.savefile_template, "-") == 0) {
+  if (rxtx_get_savefile_template(&rtd) &&
+                          strcmp(rxtx_get_savefile_template(&rtd), "-") == 0) {
     out = stderr;
   }
   for_each_set_ring(i, &rtd) {

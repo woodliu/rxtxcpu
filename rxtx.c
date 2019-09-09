@@ -274,6 +274,11 @@ const ring_set_t *rxtx_get_ring_set(struct rxtx_desc *p) {
 }
 
 /* ========================================================================= */
+const char *rxtx_get_savefile_template(struct rxtx_desc *p) {
+  return p->args->savefile_template;
+}
+
+/* ========================================================================= */
 int rxtx_packet_buffered_isset(struct rxtx_desc *p) {
   return p->args->packet_buffered;
 }
