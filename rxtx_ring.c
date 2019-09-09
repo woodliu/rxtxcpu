@@ -48,8 +48,6 @@
 #include <string.h>  // for memset(), strcmp(), strdup(), strerror()
 #include <time.h>    // for time()
 
-#define EXIT_FAIL 1
-
 #define INCREMENT_STEP 1
 
 #define PACKET_BUFFER_SIZE 65535
@@ -273,8 +271,7 @@ void *rxtx_ring_loop(void *ring) {
     }
 
     if (status == RXTX_ERROR) {
-      fprintf(stderr, "%s: %s\n", program_basename, p->errbuf);
-      exit(EXIT_FAIL);
+      return (void *)RXTX_ERROR;
     }
 
     if (length == 0) {
@@ -283,8 +280,7 @@ void *rxtx_ring_loop(void *ring) {
 
     status = rxtx_increment_packets_received(p->rtd);
     if (status == RXTX_ERROR) {
-      fprintf(stderr, "%s: %s\n", program_basename, p->errbuf);
-      exit(EXIT_FAIL);
+      return (void *)RXTX_ERROR;
     }
 
     if (p->savefile) {
@@ -292,11 +288,11 @@ void *rxtx_ring_loop(void *ring) {
                                            rxtx_packet_buffered_isset(p->rtd));
 
       if (status == RXTX_ERROR) {
-        fprintf(stderr, "%s: %s\n", program_basename, p->errbuf);
-        exit(EXIT_FAIL);
+        return (void *)RXTX_ERROR;
       }
     }
   }
+
   return NULL;
 }
 

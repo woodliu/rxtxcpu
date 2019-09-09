@@ -15,25 +15,29 @@
 #include "rxtx.h"      // for for_each_set_ring(), program_basename, rxtx_args,
                        //     rxtx_desc, rxtx_close(),
                        //     rxtx_get_packets_received(), rxtx_open()
+#include "rxtx_error.h" // for RXTX_ERROR
 #include "rxtx_ring.h" // for rxtx_ring_get_packets_received(),
                        //     rxtx_ring_loop()
 #include "sig.h"       // for setup_signals()
 
 #include <linux/if_packet.h> // for PACKET_FANOUT_CPU
 
+#include <errno.h>    // for EBUSY
 #include <getopt.h>   // for getopt_long(), optarg, optind, option, optopt
 #include <inttypes.h> // for strtoumax()
 #include <pcap.h>     // for PCAP_D_IN, PCAP_D_INOUT, PCAP_D_OUT
 #include <pthread.h>  // for pthread_attr_destroy(), pthread_attr_init(),
                       //     pthread_attr_setaffinity_np(), pthread_attr_t,
-                      //     pthread_create(), pthread_join(), pthread_t
+                      //     pthread_create(), pthread_t, pthread_tryjoin_np()
 #include <sched.h>    // for CPU_COUNT(), CPU_ISSET(), CPU_SET(), cpu_set_t,
                       //     CPU_ZERO()
 #include <stdbool.h>  // for bool, false, true
+#include <stdint.h>   // for intptr_t
 #include <stdio.h>    // for asprintf(), FILE, fprintf(), fputs(), NULL,
                       //     printf(), puts(), stderr, stdout
 #include <stdlib.h>   // for malloc()
-#include <string.h>   // for GNU basename(), memset(), strcmp(), strlen()
+#include <string.h>   // for GNU basename(), memset(), strcmp(), strerror(),
+                      //     strlen()
 #include <unistd.h>   // for _SC_NPROCESSORS_CONF, sysconf()
 
 #define EXIT_OK          0
@@ -110,6 +114,7 @@ int main(int argc, char **argv) {
 
   int c = 0;
   int i = 0;
+  int status = 0;
   int worker_count = 0;
 
   bool help = false;
@@ -413,20 +418,61 @@ int main(int argc, char **argv) {
   }
 
   /*
-   * This loop joins our threads and prints the per-ring, in this case per-cpu,
-   * results.
+   * This loop joins our threads.
+   */
+  int ebusy = 0;
+
+  void *vpstatus = NULL;
+
+  int joined[args.ring_count];
+  memset(joined, 0, sizeof(int) * args.ring_count);
+
+  while (1) {
+    ebusy = 0;
+
+    for_each_set_ring(i, &rtd) {
+      if (!joined[i]) {
+        status = pthread_tryjoin_np(threads[i], &vpstatus);
+
+        if (status == EBUSY) {
+          ebusy++;
+          continue;
+        }
+
+        if (status) {
+          fprintf(stderr, "%s: error joining ring threads: %s\n",
+                                           program_basename, strerror(status));
+          return EXIT_FAIL;
+        }
+
+        joined[i] = 1;
+        if ((intptr_t)vpstatus == (intptr_t)RXTX_ERROR) {
+          fprintf(stderr, "%s: %s\n", program_basename, rtd.errbuf);
+          return EXIT_FAIL;
+        }
+      }
+    }
+
+    if (ebusy) {
+      usleep(10);
+    } else {
+      break;
+    }
+  }
+
+  pthread_attr_destroy(&attr);
+
+  /*
+   * This loop prints our per-ring, in this case per-cpu, results.
    */
   out = stdout;
   if (args.savefile_template && strcmp(args.savefile_template, "-") == 0) {
     out = stderr;
   }
   for_each_set_ring(i, &rtd) {
-    pthread_join(threads[i], NULL);
     fprintf(out, "%ju packets captured on cpu%d.\n",
                            rxtx_ring_get_packets_received(&(rtd.rings[i])), i);
   }
-
-  pthread_attr_destroy(&attr);
 
   fprintf(out, "%ju packets captured total.\n",
                                               rxtx_get_packets_received(&rtd));
