@@ -43,12 +43,11 @@
 #include <errno.h>   // for errno
 #include <pcap.h>    // for bpf_u_int32, PCAP_D_IN, PCAP_D_OUT, pcap_pkthdr
 #include <pthread.h> // for pthread_self()
+#include <sched.h>   // for sched_getcpu()
 #include <stdio.h>   // for asprintf(), fprintf(), NULL, stderr
 #include <stdlib.h>  // for calloc(), exit(), free()
 #include <string.h>  // for memset(), strcmp(), strdup(), strerror()
 #include <time.h>    // for time()
-
-#define EXIT_FAIL 1
 
 #define INCREMENT_STEP 1
 
@@ -273,14 +272,16 @@ void *rxtx_ring_loop(void *ring) {
     }
 
     if (status == RXTX_ERROR) {
-      fprintf(stderr, "%s: %s\n", program_basename, p->errbuf);
-      exit(EXIT_FAIL);
+      return (void *)RXTX_ERROR;
+    }
+
+    if (length == 0) {
+      continue;
     }
 
     status = rxtx_increment_packets_received(p->rtd);
     if (status == RXTX_ERROR) {
-      fprintf(stderr, "%s: %s\n", program_basename, p->errbuf);
-      exit(EXIT_FAIL);
+      return (void *)RXTX_ERROR;
     }
 
     if (p->savefile) {
@@ -288,11 +289,11 @@ void *rxtx_ring_loop(void *ring) {
                                            rxtx_packet_buffered_isset(p->rtd));
 
       if (status == RXTX_ERROR) {
-        fprintf(stderr, "%s: %s\n", program_basename, p->errbuf);
-        exit(EXIT_FAIL);
+        return (void *)RXTX_ERROR;
       }
     }
   }
+
   return NULL;
 }
 
@@ -316,50 +317,34 @@ int rxtx_ring_next_packet(struct rxtx_ring *p, struct pcap_pkthdr *header,
   unsigned int sll_len = sizeof(sll);
 
   int length = 0;
-  int n = 0;
   int status = 0;
 
-  while (!rxtx_breakloop_isset(p->rtd)) {
-    /*
-     * We don't want this function to block indefinitely when the only packets
-     * seen are in an unwanted direction. For now, we'll treat 10 consecutive
-     * in an unwanted direction as a timeout.
-     */
-    if (n >= 10) {
-      return RXTX_TIMEOUT;
-    }
+  length = recvfrom(p->fd, packet, PACKET_BUFFER_SIZE, 0,
+                                          (struct sockaddr *)&sll, &sll_len);
 
-    length = recvfrom(p->fd, packet, PACKET_BUFFER_SIZE, 0,
-                                            (struct sockaddr *)&sll, &sll_len);
-
-    if (length == -1) {
-      return RXTX_TIMEOUT;
-    }
-
-    n++;
-
-    if (rxtx_get_direction(p->rtd) == PCAP_D_OUT &&
-                                                packet_direction_is_rx(&sll)) {
-      continue;
-    }
-
-    if (rxtx_get_direction(p->rtd) == PCAP_D_IN &&
-                                                packet_direction_is_tx(&sll)) {
-      continue;
-    }
-
-    status = rxtx_stats_increment_packets_received(p->stats, INCREMENT_STEP);
-    if (status == RXTX_ERROR) {
-      return RXTX_ERROR;
-    }
-
-    header->caplen     = (bpf_u_int32)length;
-    header->len        = (bpf_u_int32)length;
-    header->ts.tv_sec  = time(NULL);
-    header->ts.tv_usec = 0;
-
-    break;
+  if (length == -1) {
+    return RXTX_TIMEOUT;
   }
+
+  if (rxtx_get_direction(p->rtd) == PCAP_D_OUT &&
+                                                packet_direction_is_rx(&sll)) {
+    return 0;
+  }
+
+  if (rxtx_get_direction(p->rtd) == PCAP_D_IN &&
+                                                packet_direction_is_tx(&sll)) {
+    return 0;
+  }
+
+  status = rxtx_stats_increment_packets_received(p->stats, INCREMENT_STEP);
+  if (status == RXTX_ERROR) {
+    return RXTX_ERROR;
+  }
+
+  header->caplen     = (bpf_u_int32)length;
+  header->len        = (bpf_u_int32)length;
+  header->ts.tv_sec  = time(NULL);
+  header->ts.tv_usec = 0;
 
   return length;
 }
