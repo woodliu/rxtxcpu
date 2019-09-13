@@ -30,9 +30,11 @@
 
 #include <linux/if_packet.h> // for PACKET_FANOUT_CPU
 
+#include <ctype.h>    // for isspace()
 #include <errno.h>    // for EBUSY
 #include <getopt.h>   // for getopt_long(), optarg, optind, option, optopt
 #include <inttypes.h> // for strtoumax()
+#include <limits.h>   // for INT_MAX
 #include <pcap.h>     // for PCAP_D_IN, PCAP_D_INOUT, PCAP_D_OUT
 #include <pthread.h>  // for pthread_attr_destroy(), pthread_attr_init(),
                       //     pthread_attr_setaffinity_np(), pthread_attr_t,
@@ -42,7 +44,7 @@
 #include <stdbool.h>  // for bool, false, true
 #include <stdint.h>   // for intptr_t
 #include <stdio.h>    // for asprintf(), FILE, fprintf(), fputs(), NULL,
-                      //     printf(), puts(), stderr, stdout
+                      //     printf(), putchar(), puts(), stderr, stdout
 #include <stdlib.h>   // for malloc()
 #include <string.h>   // for GNU basename(), memset(), strcmp(), strerror(),
                       //     strlen()
@@ -53,6 +55,19 @@
 #define EXIT_FAIL_OPTION 2
 
 #define OPTION_COUNT_BASE 10
+
+#define USAGE_PRINT_OPT_COL_SEP "# "
+#define USAGE_PRINT_OPT_COL_IND "  "
+
+#define USAGE_PRINT_OPT_COL_SEP_LEN (strlen(USAGE_PRINT_OPT_COL_SEP))
+#define USAGE_PRINT_OPT_COL_IND_LEN (strlen(USAGE_PRINT_OPT_COL_IND))
+
+#define USAGE_PRINT_OPT_TOTAL_LEN     79
+#define USAGE_PRINT_OPT_FIRST_COL_LEN 31
+#define USAGE_PRINT_OPT_SECOND_COL_LEN (USAGE_PRINT_OPT_TOTAL_LEN \
+                 - USAGE_PRINT_OPT_FIRST_COL_LEN - USAGE_PRINT_OPT_COL_SEP_LEN)
+#define USAGE_PRINT_OPT_IND_SECOND_COL_LEN (USAGE_PRINT_OPT_SECOND_COL_LEN \
+                                                 - USAGE_PRINT_OPT_COL_IND_LEN)
 
 static const struct option long_options[] = {
   {"count",           required_argument, NULL, 'c'},
@@ -68,41 +83,141 @@ static const struct option long_options[] = {
   {0, 0, NULL, 0}
 };
 
+struct usage_opt {
+  int        val;
+  const char *arg;
+  char *description;
+};
+
+static const struct usage_opt usage_options[] = {
+  {'c', "N",         "Exit after receiving N packets."},
+  {'d', "DIRECTION", "Capture only packets matching DIRECTION. DIRECTION can"
+                        " be 'rx', 'tx', or 'rxtx'. Default matches invocation"
+                         " (i.e. DIRECTION defaults to 'rx' when invocation is"
+                                 " 'rxcpu', 'tx' when 'txcpu', and 'rxtx' when"
+                                                               " 'rxtxcpu')."},
+  {'h', NULL,        "Display this help and exit."},
+  {'l', "CPULIST",   "Capture only on cpus in CPULIST (e.g. if CPULIST is"
+                      " '0,2-4,6', only packets on cpus 0, 2, 3, 4, and 6 will"
+                                                             " be captured)."},
+  {'m', "CPUMASK",   "Capture only on cpus in CPUMASK (e.g. if CPUMASK is"
+                        " '5d', only packets on cpus 0, 2, 3, 4, and 6 will be"
+                                                                " captured)."},
+  {'p', NULL,        "Put the interface into promiscuous mode."},
+  {'U', NULL,        "When writing to a pcap file, the write buffer will be"
+                           " flushed just after each packet is placed in it."},
+  {'v', NULL,        "Display more verbose output."},
+  {'V', NULL,        "Display the version and exit."},
+  {'w', "FILE",      "Write packets to FILE in pcap format. FILE is used as a"
+                      " template for per-cpu filenames (e.g. if capturing on a"
+                           " system with 2 cpus, cpus 0 and 1, and FILE set to"
+                            " 'out.pcap', the cpu 0 capture will be written to"
+                       " 'out-0.pcap' and the cpu 1 capture will be written to"
+                            " 'out-1.pcap'). Writing to stdout is supported by"
+                           " setting FILE to '-', but only when capturing on a"
+                                                               " single cpu."},
+  {0, NULL, NULL}
+};
+
+/* ========================================================================= */
+static void usage_print_opt(int val, const char *name, const char *arg,
+                                                           char *description) {
+  int consumed = 0;
+  int padding = 0;
+  int remaining = 0;
+
+  char *start = NULL;
+  char *end = NULL;
+
+  consumed = printf("  -%c, [--%s%s%s]  ", val, name, arg ? "=" : "",
+                                                               arg ? arg : "");
+
+  if (consumed < 0) {
+    /* no point in continuing */
+    return;
+  }
+
+  padding = USAGE_PRINT_OPT_FIRST_COL_LEN - consumed;
+
+  if (padding < 0) {
+    padding = 0;
+  }
+
+  printf("%*s%s", padding, "", USAGE_PRINT_OPT_COL_SEP);
+
+  start = description;
+
+  remaining = USAGE_PRINT_OPT_SECOND_COL_LEN;
+
+  while(1) {
+    while(isspace(*start)) {
+      start++;
+    }
+
+    int len = strlen(start);
+
+    if (len < remaining) {
+      printf("%s\n", start);
+      break;
+    }
+
+    end = start + remaining;
+
+    while(!isspace(*end) && end > start) {
+      end--;
+    }
+
+    if (start == end) {
+      /* no whitespace found in second column width, bail */
+      printf("%s\n", start);
+      break;
+    }
+
+    while(start < end) {
+      putchar(*start);
+      start++;
+    }
+
+    printf("\n%*s%s%s", USAGE_PRINT_OPT_FIRST_COL_LEN, "",
+                             USAGE_PRINT_OPT_COL_SEP, USAGE_PRINT_OPT_COL_IND);
+
+    remaining = USAGE_PRINT_OPT_IND_SECOND_COL_LEN;
+  }
+}
+
 /* ========================================================================= */
 static void usage(void) {
+  int i = 0;
+  int j = 0;
+  int val = 0;
+  int oval = 0;
+
   puts("Usage:");
   printf("  %s [OPTIONS] [INTERFACE]\n\n", program_basename);
 
-  puts("Options:\n"
-       "  -c, [--count=N]              # Exit after receiving N packets.\n"
-       "  -d, [--direction=DIRECTION]  # Capture only packets matching DIRECTION.\n"
-       "                               #   DIRECTION can be 'rx', 'tx', or 'rxtx'.\n"
-       "                               #   Default matches invocation (i.e. DIRECTION\n"
-       "                               #   defaults to 'rx' when invocation is 'rxcpu',\n"
-       "                               #   'tx' when 'txcpu', and 'rxtx' when\n"
-       "                               #   'rxtxcpu').\n"
-       "  -h, [--help]                 # Display this help and exit.\n"
-       "  -l, [--cpu-list=CPULIST]     # Capture only on cpus in CPULIST (e.g. if\n"
-       "                               #   CPULIST is '0,2-4,6', only packets on cpus\n"
-       "                               #   0, 2, 3, 4, and 6 will be captured).\n"
-       "  -m, [--cpu-mask=CPUMASK]     # Capture only on cpus in CPUMASK (e.g. if\n"
-       "                               #   CPUMASK is '5d', only packets on cpus 0, 2,\n"
-       "                               #   3, 4, and 6 will be captured).\n"
-       "  -p, [--promiscuous]          # Put the interface into promiscuous mode.\n"
-       "  -U, [--packet-buffered]      # When writing to a pcap file, the write buffer\n"
-       "                               #   will be flushed just after each packet is\n"
-       "                               #   placed in it.\n"
-       "  -v, [--verbose]              # Display more verbose output.\n"
-       "  -V, [--version]              # Display the version and exit.\n"
-       "  -w, [--write=FILE]           # Write packets to FILE in pcap format. FILE is\n"
-       "                               #   used as a template for per-cpu filenames\n"
-       "                               #   (e.g. if capturing on a system with 2 cpus,\n"
-       "                               #   cpus 0 and 1, and FILE set to 'out.pcap',\n"
-       "                               #   the cpu 0 capture will be written to\n"
-       "                               #   'out-0.pcap' and the cpu 1 capture will be\n"
-       "                               #   written to 'out-1.pcap'). Writing to stdout\n"
-       "                               #   is supported by setting FILE to '-', but\n"
-       "                               #   only when capturing on a single cpu.");
+  puts("Options:");
+
+  for (i = 0; i < INT_MAX; i++) {
+    val = usage_options[i].val;
+
+    if (!val) {
+      break;
+    }
+
+    for (j = 0; j < INT_MAX; j++) {
+      oval = long_options[j].val;
+
+      if (!oval) {
+        break;
+      }
+
+      if (oval == val) {
+        usage_print_opt(val, long_options[j].name, usage_options[i].arg,
+                                                 usage_options[i].description);
+        break;
+      }
+    }
+  }
 }
 
 /* ========================================================================= */
