@@ -186,11 +186,30 @@ static void usage_print_opt(int val, const char *name, const char *arg,
 }
 
 /* ========================================================================= */
+static const char * usage_opt_get_name(int val) {
+  int i = 0;
+  int v = 0;
+
+  for (i = 0; i < INT_MAX; i++) {
+    v = long_options[i].val;
+
+    if (!v) {
+      return NULL;
+    }
+
+    if (v == val) {
+      return long_options[i].name;
+    }
+  }
+
+  return NULL;
+}
+
+/* ========================================================================= */
 static void usage(void) {
   int i = 0;
-  int j = 0;
   int val = 0;
-  int oval = 0;
+  const char *name;
 
   puts("Usage:");
   printf("  %s [OPTIONS] [INTERFACE]\n\n", program_basename);
@@ -204,18 +223,11 @@ static void usage(void) {
       break;
     }
 
-    for (j = 0; j < INT_MAX; j++) {
-      oval = long_options[j].val;
+    name = usage_opt_get_name(val);
 
-      if (!oval) {
-        break;
-      }
-
-      if (oval == val) {
-        usage_print_opt(val, long_options[j].name, usage_options[i].arg,
+    if (name) {
+      usage_print_opt(val, name, usage_options[i].arg,
                                                  usage_options[i].description);
-        break;
-      }
     }
   }
 }
