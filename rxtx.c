@@ -60,6 +60,7 @@ void rxtx_init(struct rxtx_desc *p, char *errbuf) {
 
   p->breakloop       = 0;
   p->direction       = PCAP_D_INOUT;
+  p->fanout_data_fd  = 0;
   p->fanout_group_id = getpid() & 0xffff;
   p->fanout_mode     = 0;
   p->ifindex         = 0;
@@ -290,6 +291,7 @@ int rxtx_close(struct rxtx_desc *p) {
 
   p->is_active = 0;
   p->breakloop = 0;
+  p->fanout_data_fd = 0;
   p->fanout_group_id = 0;
   p->ifindex = 0;
   p->initialized_ring_count = 0;
@@ -345,6 +347,11 @@ pcap_direction_t rxtx_get_direction(struct rxtx_desc *p) {
 int rxtx_get_fanout_arg(struct rxtx_desc *p) {
   assert((p->fanout_group_id >> 16) == 0);
   return p->fanout_group_id | (p->fanout_mode << 16);
+}
+
+/* ========================================================================= */
+int rxtx_get_fanout_data_fd(struct rxtx_desc *p) {
+  return p->fanout_data_fd;
 }
 
 /* ========================================================================= */
@@ -514,6 +521,19 @@ int rxtx_set_direction(struct rxtx_desc *p, pcap_direction_t direction) {
   }
 
   p->direction = direction;
+
+  return 0;
+}
+
+/* ========================================================================= */
+int rxtx_set_fanout_data_fd(struct rxtx_desc *p, int fd) {
+  if (p->is_active) {
+    rxtx_fill_errbuf(p->errbuf, "error setting fanout data fd: changing fanout"
+                          " data fd on an active descriptor is not permitted");
+    return RXTX_ERROR;
+  }
+
+  p->fanout_data_fd = fd;
 
   return 0;
 }

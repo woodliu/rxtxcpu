@@ -45,6 +45,7 @@ struct rxtx_desc {
 
   int              breakloop;
   pcap_direction_t direction;
+  int              fanout_data_fd;
   int              fanout_group_id;
   int              fanout_mode;
   unsigned int     ifindex;
@@ -67,6 +68,7 @@ int rxtx_close(struct rxtx_desc *p);
 int rxtx_breakloop_isset(struct rxtx_desc *p);
 pcap_direction_t rxtx_get_direction(struct rxtx_desc *p);
 int rxtx_get_fanout_arg(struct rxtx_desc *p);
+int rxtx_get_fanout_data_fd(struct rxtx_desc *p);
 int rxtx_get_fanout_group_id(struct rxtx_desc *p);
 int rxtx_get_fanout_mode(struct rxtx_desc *p);
 unsigned int rxtx_get_ifindex(struct rxtx_desc *p);
@@ -88,6 +90,7 @@ int rxtx_increment_packets_received(struct rxtx_desc *p);
 int rxtx_set_breakloop(struct rxtx_desc *p);
 void rxtx_set_breakloop_global(void);
 int rxtx_set_direction(struct rxtx_desc *p, pcap_direction_t direction);
+int rxtx_set_fanout_data_fd(struct rxtx_desc *p, int fd);
 int rxtx_set_fanout_group_id(struct rxtx_desc *p, int group_id);
 int rxtx_set_fanout_mode(struct rxtx_desc *p, int mode);
 int rxtx_set_ifindex(struct rxtx_desc *p, unsigned int ifindex);

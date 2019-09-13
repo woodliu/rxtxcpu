@@ -11,6 +11,7 @@
 #include "rxtx_ring.h"
 #include "rxtx.h" // for rxtx_desc, rxtx_breakloop_isset(),
                   //     rxtx_get_direction(), rxtx_get_fanout_arg(),
+                  //     rxtx_get_fanout_data_fd(), rxtx_get_fanout_mode(),
                   //     rxtx_get_ifindex(), rxtx_get_initialized_ring_count(),
                   //     rxtx_increment_packets_received(),
                   //     rxtx_increment_initialized_ring_count(),
@@ -29,7 +30,8 @@
 #include "ext.h" // for ext(), noext_copy()
 
 #include <arpa/inet.h>       // for htons()
-#include <linux/if_packet.h> // for PACKET_FANOUT, PACKET_OUTGOING,
+#include <linux/if_packet.h> // for PACKET_FANOUT, PACKET_FANOUT_DATA,
+                             //     PACKET_FANOUT_EBPF, PACKET_OUTGOING,
                              //     PACKET_RX_RING, PACKET_STATISTICS,
                              //     PACKET_TX_RING, sockaddr_ll, tpacket_req,
                              //     tpacket_stats
@@ -163,6 +165,19 @@ int rxtx_ring_init(struct rxtx_ring *p, struct rxtx_desc *rtd, char *errbuf) {
                                                               strerror(errno));
     return RXTX_ERROR;
   }
+
+#ifdef PACKET_FANOUT_EBPF
+  if (rxtx_get_fanout_mode(rtd) == PACKET_FANOUT_EBPF) {
+    int fanout_data_fd = rxtx_get_fanout_data_fd(rtd);
+    status = setsockopt(p->fd, SOL_PACKET, PACKET_FANOUT_DATA, &fanout_data_fd,
+                                                       sizeof(fanout_data_fd));
+    if (status == -1) {
+      rxtx_fill_errbuf(p->errbuf, "error configuring fanout: %s",
+                                                              strerror(errno));
+      return RXTX_ERROR;
+    }
+  }
+#endif // PACKET_FANOUT_EBPF
 
   rxtx_increment_initialized_ring_count(rtd);
 
