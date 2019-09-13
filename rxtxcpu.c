@@ -119,6 +119,8 @@ static const struct usage_opt usage_options[] = {
   {0, NULL, NULL}
 };
 
+static char *usage_short_opt_order = "h:c:lm:d:U:p:v:V:w";
+
 /* ========================================================================= */
 static void usage_print_opt(int val, const char *name, const char *arg,
                                                            char *description) {
@@ -186,6 +188,26 @@ static void usage_print_opt(int val, const char *name, const char *arg,
 }
 
 /* ========================================================================= */
+static const char *usage_opt_get_arg(int val) {
+  int i = 0;
+  int v = 0;
+
+  for (i = 0; i < INT_MAX; i++) {
+    v = usage_options[i].val;
+
+    if (!v) {
+      return NULL;
+    }
+
+    if (v == val) {
+      return usage_options[i].arg;
+    }
+  }
+
+  return NULL;
+}
+
+/* ========================================================================= */
 static const char * usage_opt_get_name(int val) {
   int i = 0;
   int v = 0;
@@ -234,13 +256,95 @@ static void usage(void) {
 
 /* ========================================================================= */
 static void usage_short(void) {
-  fprintf(stderr,
-          "Usage: %s [--help] [--count=N] [--cpu-list=CPULIST|--cpu-mask=CPUMASK]\n"
-          "       %*s [--direction=DIRECTION] [--packet-buffered] [--promiscuous]\n"
-          "       %*s [--verbose] [--version] [--write=FILE] [INTERFACE]\n",
-          program_basename,
-          (int) strlen(program_basename), "",
-          (int) strlen(program_basename), "");
+  int i = 0;
+  int indent = 0;
+  int lookahead = 0;
+  int projected = 0;
+  int remaining = 0;
+  int val = 0;
+
+  char *p = NULL;
+
+  const char *arg;
+  const char *name;
+
+  indent = fprintf(stderr, "Usage: %s", program_basename);
+
+  if (indent < 0) {
+    /* no point in continuing */
+    return;
+  }
+
+  remaining = USAGE_PRINT_OPT_TOTAL_LEN - indent;
+
+  p = usage_short_opt_order;
+
+  while (*p) {
+    lookahead = 0;
+    projected = 0;
+
+    while (p[lookahead] && p[lookahead] != ':') {
+      val = p[lookahead];
+
+      name = usage_opt_get_name(val);
+      arg = usage_opt_get_arg(val);
+
+      if (name) {
+        if (!lookahead) {
+          projected += 4; // ' [--'
+        } else {
+          projected += 3; // '|--'
+        }
+
+        projected += strlen(name);
+
+        if (arg) {
+          projected += 1; // '='
+          projected += strlen(arg);
+        }
+      }
+
+      lookahead++;
+    }
+
+    projected += 1; // ']'
+
+    if (projected > remaining) {
+      fprintf(stderr, "\n%*s", indent, "");
+      remaining = USAGE_PRINT_OPT_TOTAL_LEN - indent;
+    }
+
+    for (i = 0; i < lookahead; i++) {
+      val = p[i];
+
+      name = usage_opt_get_name(val);
+      arg = usage_opt_get_arg(val);
+
+      if (name) {
+        if (!i) {
+          remaining -= fprintf(stderr, " [--");
+        } else {
+          remaining -= fprintf(stderr, "|--");
+        }
+
+        remaining -= fprintf(stderr, "%s", name);
+
+        if (arg) {
+          remaining -= fprintf(stderr, "=%s", arg);
+        }
+      }
+    }
+
+    p += lookahead;
+
+    remaining -= fprintf(stderr, "]");
+
+    if (*p == ':') {
+      p++;
+    }
+  }
+
+  fprintf(stderr, "\n");
 }
 
 /* ========================================================================= */
