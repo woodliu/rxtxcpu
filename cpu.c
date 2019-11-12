@@ -78,6 +78,36 @@ int get_online_cpu_set(cpu_set_t *cpu_set) {
 }
 
 /* ========================================================================= */
+int get_numa_cpu_set(cpu_set_t *cpu_set, int numa_node) {
+  CPU_ZERO(cpu_set);
+
+  int status = 0;
+
+  char cpu_list[MAX_ONLINE_CPU_LIST_LENGTH];
+  char *path = NULL;
+
+  status = asprintf(&path, "/sys/devices/system/node/node%i/cpulist",
+                                                                    numa_node);
+  if (status == -1) {
+    return RETURN_BAD;
+  }
+
+  FILE *f = fopen(path, "r");
+  if (!f || feof(f) || !fgets(cpu_list, sizeof(cpu_list), f)) {
+    fclose(f);
+    return RETURN_BAD;
+  }
+  fclose(f);
+
+  free(path);
+
+  cpu_list[strcspn(cpu_list, "\n")] = 0;
+  parse_cpu_list(cpu_list, cpu_set);
+
+  return RETURN_GOOD;
+}
+
+/* ========================================================================= */
 static int hex2int(char c) {
   if (c >= '0' && c <= '9')
     return c - '0';
