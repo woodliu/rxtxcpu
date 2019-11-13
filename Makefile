@@ -10,6 +10,10 @@ rxtxcpu.o: EXTRA_CFLAGS = \
 	-std=c99 \
 	'-DRXTXCPU_VERSION="$(RXTXCPU_VERSION)"'
 
+rxtxnuma.o: EXTRA_CFLAGS = \
+	-std=c99 \
+	'-DRXTXUTILS_VERSION="$(RXTXUTILS_VERSION)"'
+
 cpu.o rxtx.o: EXTRA_CFLAGS = \
 	-std=c99
 
@@ -22,9 +26,15 @@ rxtxcpu rxcpu txcpu: cpu.o ext.o interface.o ring_set.o rxtx.o rxtx_ring.o rxtx_
 	ln -s rxtxcpu rxcpu
 	ln -s rxtxcpu txcpu
 
+rxtxnuma rxnuma txnuma: cpu.o ext.o interface.o ring_set.o rxtx.o rxtx_ring.o rxtx_savefile.o rxtx_stats.o rxtxnuma.o sig.o
+	$(CC) $(CFLAGS) -o rxtxnuma $^ -lpcap -lpthread
+	rm -f rxnuma txnuma
+	ln -s rxtxnuma rxnuma
+	ln -s rxtxnuma txnuma
+
 .PHONY: clean
 clean:
-	rm -f cpu.o ext.o interface.o ring_set.o rxtx.o rxtx_ring.o rxtx_savefile.o rxtx_stats.o rxtxcpu.o sig.o rxtxcpu rxcpu txcpu
+	rm -f cpu.o ext.o interface.o ring_set.o rxtx.o rxtx_ring.o rxtx_savefile.o rxtx_stats.o rxtxcpu.o sig.o rxtxcpu rxcpu txcpu rxtxnuma rxnuma txnuma
 
 .PHONY: install
 install: rxtxcpu rxcpu txcpu

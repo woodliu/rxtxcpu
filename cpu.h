@@ -15,6 +15,7 @@
 
 #include <sched.h> // for cpu_set_t
 
+int get_numa_cpu_set(cpu_set_t *cpu_set, int numa_node);
 int get_online_cpu_set(cpu_set_t *cpu_set);
 int parse_cpu_list(char *cpu_list, cpu_set_t *cpu_set);
 int parse_cpu_mask(char *cpu_mask, cpu_set_t *cpu_set);
