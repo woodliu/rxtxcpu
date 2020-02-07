@@ -595,9 +595,6 @@ int main(int argc, char **argv) {
     return EXIT_FAIL_OPTION;
   }
 
-  /*
-   * We need to know how many processors are configured.
-   */
   rings = sysconf(_SC_NPROCESSORS_CONF);
   if (rings <= 0) {
     fprintf(stderr, "%s: Failed to get " FSUBJECT " count.\n",
@@ -782,7 +779,7 @@ int main(int argc, char **argv) {
   pthread_attr_destroy(&attr);
 
   /*
-   * This loop prints our per-ring, in this case per-cpu, results.
+   * This loop prints our per-ring results.
    */
   out = stdout;
   if (rxtx_get_savefile_template(&rtd) &&
