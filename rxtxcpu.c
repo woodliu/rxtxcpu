@@ -368,7 +368,7 @@ int main(int argc, char **argv) {
   program_basename = basename(argv[0]);
 
   int c = 0;
-  int cpus = 0;
+  int rings = 0;
   int i = 0;
   int status = 0;
   int worker_count = 0;
@@ -376,8 +376,8 @@ int main(int argc, char **argv) {
   bool help = false;
 
   char *badopt = NULL;
-  char *cpu_list = NULL;
-  char *cpu_mask = NULL;
+  char *list = NULL;
+  char *mask = NULL;
   char *endptr = NULL;
 
   FILE *out = stdout;
@@ -477,7 +477,7 @@ int main(int argc, char **argv) {
         break;
 
       case 'l':
-        cpu_list = optarg;
+        list = optarg;
         if (parse_cpu_list(optarg, &ring_set)) {
           fprintf(stderr, "%s: Invalid " FLIST " '%s'.\n", program_basename,
                                                                        optarg);
@@ -487,7 +487,7 @@ int main(int argc, char **argv) {
         break;
 
       case 'm':
-        cpu_mask = optarg;
+        mask = optarg;
         if (parse_cpu_mask(optarg, &ring_set)) {
           fprintf(stderr, "%s: Invalid " FMASK " '%s'.\n", program_basename,
                                                                        optarg);
@@ -588,7 +588,7 @@ int main(int argc, char **argv) {
     return EXIT_OK;
   }
 
-  if (cpu_list && cpu_mask) {
+  if (list && mask) {
     fprintf(stderr, "%s: -l [--" HLIST "] and -m [--" HMASK "] are mutually"
                                             " exclusive.\n", program_basename);
     usage_short();
@@ -598,14 +598,14 @@ int main(int argc, char **argv) {
   /*
    * We need to know how many processors are configured.
    */
-  cpus = sysconf(_SC_NPROCESSORS_CONF);
-  if (cpus <= 0) {
+  rings = sysconf(_SC_NPROCESSORS_CONF);
+  if (rings <= 0) {
     fprintf(stderr, "%s: Failed to get " FSUBJECT " count.\n",
                                                              program_basename);
     return EXIT_FAIL;
   }
 
-  status = rxtx_set_ring_count(&rtd, cpus);
+  status = rxtx_set_ring_count(&rtd, rings);
   if (status == RXTX_ERROR) {
     fprintf(stderr, "%s: %s\n", program_basename, errbuf);
     return EXIT_FAIL;
@@ -629,21 +629,21 @@ int main(int argc, char **argv) {
   }
   if (!worker_count) {
     fprintf(stderr, "%s: No configured " FSUBJECTS " present in %s.\n",
-                                   program_basename, cpu_list ? FLIST : FMASK);
+                                       program_basename, list ? FLIST : FMASK);
     usage_short();
     return EXIT_FAIL_OPTION;
   }
 
-  cpu_set_t online_cpu_set;
-  if (get_online_cpu_set(&online_cpu_set) != 0) {
+  cpu_set_t online;
+  if (get_online_cpu_set(&online) != 0) {
     fprintf(stderr, "%s: Failed to get online " FSUBJECT " set.\n",
                                                              program_basename);
     return EXIT_FAIL_OPTION;
   }
 
-  if (CPU_COUNT(&online_cpu_set) != rxtx_get_ring_count(&rtd)) {
+  if (CPU_COUNT(&online) != rxtx_get_ring_count(&rtd)) {
     for_each_ring(i, &rtd) {
-      if (!CPU_ISSET(i, &online_cpu_set)) {
+      if (!CPU_ISSET(i, &online)) {
         RING_CLR(i, &ring_set);
         if (rxtx_verbose_isset(&rtd)) {
           fprintf(stderr, "Skipping " FSUBJECT " '%d' since it is offline.\n",
@@ -661,7 +661,7 @@ int main(int argc, char **argv) {
   }
   if (!worker_count) {
     fprintf(stderr, "%s: No online " FSUBJECTS " present in %s.\n",
-                                   program_basename, cpu_list ? FLIST : FMASK);
+                                       program_basename, list ? FLIST : FMASK);
     usage_short();
     return EXIT_FAIL_OPTION;
   }
