@@ -700,6 +700,27 @@ int main(int argc, char **argv) {
     return EXIT_FAIL_OPTION;
   }
 
+  if ((optind + 1) < argc) {
+    fprintf(stderr, "%s: Only one interface argument is allowed (got [ ",
+                                                             program_basename);
+    for (; optind < argc; optind++) {
+      fprintf(stderr, "'%s'", argv[optind]);
+      if ((optind + 1) < argc)
+        fputs(", ", stderr);
+    }
+    fputs(" ]).\n", stderr);
+    usage_short();
+    return EXIT_FAIL_OPTION;
+  }
+
+  if (optind != argc) {
+    status = rxtx_set_ifname(&rtd, argv[optind]);
+    if (status == RXTX_ERROR) {
+      fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+      return EXIT_FAIL;
+    }
+  }
+
   rings = num_numa();
   if (rings <= 0) {
     fprintf(stderr, "%s: Failed to get " FSUBJECT " count.\n",
@@ -781,27 +802,6 @@ int main(int argc, char **argv) {
   if (status == RXTX_ERROR) {
     fprintf(stderr, "%s: %s\n", program_basename, errbuf);
     return EXIT_FAIL;
-  }
-
-  if ((optind + 1) < argc) {
-    fprintf(stderr, "%s: Only one interface argument is allowed (got [ ",
-                                                             program_basename);
-    for (; optind < argc; optind++) {
-      fprintf(stderr, "'%s'", argv[optind]);
-      if ((optind + 1) < argc)
-        fputs(", ", stderr);
-    }
-    fputs(" ]).\n", stderr);
-    usage_short();
-    return EXIT_FAIL_OPTION;
-  }
-
-  if (optind != argc) {
-    status = rxtx_set_ifname(&rtd, argv[optind]);
-    if (status == RXTX_ERROR) {
-      fprintf(stderr, "%s: %s\n", program_basename, errbuf);
-      return EXIT_FAIL;
-    }
   }
 
   status = rxtx_activate(&rtd);
