@@ -48,7 +48,7 @@
 #include <stdlib.h>   // for malloc()
 #include <string.h>   // for GNU basename(), memset(), strcmp(), strerror(),
                       //     strlen()
-#include <unistd.h>   // for _SC_NPROCESSORS_CONF, sysconf()
+#include <unistd.h>   // for _SC_NPROCESSORS_CONF, sysconf(), usleep()
 
 #define EXIT_OK          0
 #define EXIT_FAIL        1
