@@ -104,7 +104,7 @@ static const struct usage_opt usage_options[] = {
   {'h', NULL,        "Display this help and exit."},
   {'l', "QUEUELIST", "Capture only on queues in QUEUELIST (e.g. if QUEUELIST"
                       " is '0,2-4,6', only packets on queues 0, 2, 3, 4, and 6"
-                                                  " and 6 will be captured)."},
+                                                        " will be captured)."},
   {'m', "QUEUEMASK", "Capture only on queues in QUEUEMASK (e.g. if QUEUEMASK"
                       " is '5d', only packets on queues 0, 2, 3, 4, and 6 will"
                                                              " be captured)."},
