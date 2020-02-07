@@ -75,12 +75,27 @@
 #define USAGE_PRINT_OPT_IND_SECOND_COL_LEN (USAGE_PRINT_OPT_SECOND_COL_LEN \
                                                  - USAGE_PRINT_OPT_COL_IND_LEN)
 
+#define SUBJECT "numa"
+#define USUBJECT "NUMA"
+#define RXTXSELF "rxtx" SUBJECT
+#define RXSELF "rx" SUBJECT
+#define TXSELF "tx" SUBJECT
+#define FSUBJECT SUBJECT " node"
+#define HSUBJECT SUBJECT "-node"
+#define FSUBJECTS FSUBJECT "s"
+#define FLIST SUBJECT " list"
+#define HLIST SUBJECT "-list"
+#define ULIST USUBJECT "LIST"
+#define FMASK SUBJECT " mask"
+#define HMASK SUBJECT "-mask"
+#define UMASK USUBJECT "MASK"
+
 static const struct option long_options[] = {
   {"count",           required_argument, NULL, 'c'},
   {"direction",       required_argument, NULL, 'd'},
   {"help",            no_argument,       NULL, 'h'},
-  {"numa-list",       required_argument, NULL, 'l'},
-  {"numa-mask",       required_argument, NULL, 'm'},
+  {HLIST,             required_argument, NULL, 'l'},
+  {HMASK,             required_argument, NULL, 'm'},
   {"promiscuous",     no_argument,       NULL, 'p'},
   {"packet-buffered", no_argument,       NULL, 'U'},
   {"verbose",         no_argument,       NULL, 'v'},
@@ -100,28 +115,29 @@ static const struct usage_opt usage_options[] = {
   {'d', "DIRECTION", "Capture only packets matching DIRECTION. DIRECTION can"
                         " be 'rx', 'tx', or 'rxtx'. Default matches invocation"
                          " (i.e. DIRECTION defaults to 'rx' when invocation is"
-                               " 'rxnuma', 'tx' when 'txnuma', and 'rxtx' when"
-                                                              " 'rxtxnuma')."},
+                       " '" RXSELF "', 'tx' when '" TXSELF "', and 'rxtx' when"
+                                                          " '" RXTXSELF "')."},
   {'h', NULL,        "Display this help and exit."},
-  {'l', "NUMALIST",  "Capture only on numa nodes in NUMALIST (e.g. if NUMALIST"
-                        " is '0,2-4,6', only packets on numa nodes 0, 2, 3, 4,"
-                                                  " and 6 will be captured)."},
-  {'m', "NUMAMASK",  "Capture only on numa nodes in NUMAMASK (e.g. if NUMAMASK"
-                       " is '5d', only packets on numa nodes 0, 2, 3, 4, and 6"
-                                                        " will be captured)."},
+  {'l', ULIST,       "Capture only on " FSUBJECTS " in " ULIST " (e.g. if "
+                        ULIST " is '0,2-4,6', only packets on " FSUBJECTS " 0,"
+                                         " 2, 3, 4, and 6 will be captured)."},
+  {'m', UMASK,       "Capture only on " FSUBJECTS " in " UMASK " (e.g. if "
+                       UMASK " is '5d', only packets on " FSUBJECTS " 0, 2, 3,"
+                                               " 4, and 6 will be captured)."},
   {'p', NULL,        "Put the interface into promiscuous mode."},
   {'U', NULL,        "When writing to a pcap file, the write buffer will be"
                            " flushed just after each packet is placed in it."},
   {'v', NULL,        "Display more verbose output."},
   {'V', NULL,        "Display the version and exit."},
   {'w', "FILE",      "Write packets to FILE in pcap format. FILE is used as a"
-                     " template for per-numa-node filenames (e.g. if capturing"
-                      " on a system with 2 numa nodes, numa nodes 0 and 1, and"
-                     " FILE set to 'out.pcap', the numa node 0 capture will be"
-                         " written to 'out-0.pcap' and the numa node 1 capture"
-                      " will be written to 'out-1.pcap'). Writing to stdout is"
-                             " supported by setting FILE to '-', but only when"
-                                          " capturing on a single numa node."},
+                            " template for per-" HSUBJECT " filenames (e.g. if"
+                                " capturing on a system with 2 " FSUBJECTS ", "
+                         FSUBJECTS " 0 and 1, and FILE set to 'out.pcap', the "
+                          FSUBJECT " 0 capture will be written to 'out-0.pcap'"
+                           " and the " FSUBJECT " 1 capture will be written to"
+                            " 'out-1.pcap'). Writing to stdout is supported by"
+                           " setting FILE to '-', but only when capturing on a"
+                                                      " single " FSUBJECT "."},
   {0, NULL, NULL}
 };
 
@@ -504,9 +520,9 @@ int main(int argc, char **argv) {
   /*
    * direction default is based on the invocation.
    */
-  if (strcmp(program_basename, "rxnuma") == 0) {
+  if (strcmp(program_basename, RXSELF) == 0) {
     status = rxtx_set_direction(&rtd, PCAP_D_IN);
-  } else if (strcmp(program_basename, "txnuma") == 0) {
+  } else if (strcmp(program_basename, TXSELF) == 0) {
     status = rxtx_set_direction(&rtd, PCAP_D_OUT);
   } else {
     status = rxtx_set_direction(&rtd, PCAP_D_INOUT);
@@ -568,7 +584,7 @@ int main(int argc, char **argv) {
       case 'l':
         list = optarg;
         if (parse_cpu_list(optarg, &ring_set)) {
-          fprintf(stderr, "%s: Invalid numa list '%s'.\n", program_basename,
+          fprintf(stderr, "%s: Invalid " FLIST " '%s'.\n", program_basename,
                                                                        optarg);
           usage_short();
           return EXIT_FAIL_OPTION;
@@ -578,7 +594,7 @@ int main(int argc, char **argv) {
       case 'm':
         mask = optarg;
         if (parse_cpu_mask(optarg, &ring_set)) {
-          fprintf(stderr, "%s: Invalid numa mask '%s'.\n", program_basename,
+          fprintf(stderr, "%s: Invalid " FMASK " '%s'.\n", program_basename,
                                                                        optarg);
           usage_short();
           return EXIT_FAIL_OPTION;
@@ -678,7 +694,7 @@ int main(int argc, char **argv) {
   }
 
   if (list && mask) {
-    fprintf(stderr, "%s: -l [--numa-list] and -m [--numa-mask] are mutually"
+    fprintf(stderr, "%s: -l [--" HLIST "] and -m [--" HMASK "] are mutually"
                                             " exclusive.\n", program_basename);
     usage_short();
     return EXIT_FAIL_OPTION;
@@ -686,7 +702,8 @@ int main(int argc, char **argv) {
 
   rings = num_numa();
   if (rings <= 0) {
-    fprintf(stderr, "%s: Failed to get numa node count.\n", program_basename);
+    fprintf(stderr, "%s: Failed to get " FSUBJECT " count.\n",
+                                                             program_basename);
     return EXIT_FAIL;
   }
 
@@ -697,7 +714,7 @@ int main(int argc, char **argv) {
   }
 
   if (rxtx_verbose_isset(&rtd)) {
-    fprintf(stderr, "Found '%d' numa nodes.\n", rxtx_get_ring_count(&rtd));
+    fprintf(stderr, "Found '%d' " FSUBJECTS ".\n", rxtx_get_ring_count(&rtd));
   }
 
   if (RING_COUNT(&ring_set) == 0) {
@@ -713,15 +730,16 @@ int main(int argc, char **argv) {
     }
   }
   if (!worker_count) {
-    fprintf(stderr, "%s: No configured numa nodes present in numa %s.\n",
-                                 program_basename, list ? "list" : "mask");
+    fprintf(stderr, "%s: No configured " FSUBJECTS " present in %s.\n",
+                                       program_basename, list ? FLIST : FMASK);
     usage_short();
     return EXIT_FAIL_OPTION;
   }
 
   cpu_set_t online;
   if (get_online_numa_set(&online) != 0) {
-    fprintf(stderr, "%s: Failed to get online numa set.\n", program_basename);
+    fprintf(stderr, "%s: Failed to get online " FSUBJECT " set.\n",
+                                                             program_basename);
     return EXIT_FAIL_OPTION;
   }
 
@@ -730,7 +748,8 @@ int main(int argc, char **argv) {
       if (!CPU_ISSET(i, &online)) {
         RING_CLR(i, &ring_set);
         if (rxtx_verbose_isset(&rtd)) {
-          fprintf(stderr, "Skipping numa node '%d' since it is offline.\n", i);
+          fprintf(stderr, "Skipping " FSUBJECT " '%d' since it is offline.\n",
+                                                                            i);
         }
       }
     }
@@ -743,8 +762,8 @@ int main(int argc, char **argv) {
     }
   }
   if (!worker_count) {
-    fprintf(stderr, "%s: No online numa nodes present in numa %s.\n",
-                                 program_basename, list ? "list" : "mask");
+    fprintf(stderr, "%s: No online " FSUBJECTS " present in %s.\n",
+                                       program_basename, list ? FLIST : FMASK);
     usage_short();
     return EXIT_FAIL_OPTION;
   }
@@ -753,7 +772,7 @@ int main(int argc, char **argv) {
                           strcmp(rxtx_get_savefile_template(&rtd), "-") == 0 &&
                                                   RING_COUNT(&ring_set) != 1) {
     fprintf(stderr, "%s: Write file '-' (stdout) is only permitted when"
-                      " capturing on a single numa node.\n", program_basename);
+                   " capturing on a single " FSUBJECT ".\n", program_basename);
     usage_short();
     return EXIT_FAIL_OPTION;
   }
@@ -879,7 +898,7 @@ int main(int argc, char **argv) {
       return EXIT_FAIL;
     }
 
-    fprintf(out, "%ju packets captured on numa node %d.\n",
+    fprintf(out, "%ju packets captured on " FSUBJECT " %d.\n",
                                       rxtx_ring_get_packets_received(ring), i);
   }
 
