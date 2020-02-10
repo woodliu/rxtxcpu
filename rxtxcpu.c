@@ -69,12 +69,27 @@
 #define USAGE_PRINT_OPT_IND_SECOND_COL_LEN (USAGE_PRINT_OPT_SECOND_COL_LEN \
                                                  - USAGE_PRINT_OPT_COL_IND_LEN)
 
+#define SUBJECT "cpu"
+#define USUBJECT "CPU"
+#define RXTXSELF "rxtx" SUBJECT
+#define RXSELF "rx" SUBJECT
+#define TXSELF "tx" SUBJECT
+#define FSUBJECT SUBJECT
+#define HSUBJECT SUBJECT
+#define FSUBJECTS FSUBJECT "s"
+#define FLIST SUBJECT " list"
+#define HLIST SUBJECT "-list"
+#define ULIST USUBJECT "LIST"
+#define FMASK SUBJECT " mask"
+#define HMASK SUBJECT "-mask"
+#define UMASK USUBJECT "MASK"
+
 static const struct option long_options[] = {
   {"count",           required_argument, NULL, 'c'},
   {"direction",       required_argument, NULL, 'd'},
   {"help",            no_argument,       NULL, 'h'},
-  {"cpu-list",        required_argument, NULL, 'l'},
-  {"cpu-mask",        required_argument, NULL, 'm'},
+  {HLIST,             required_argument, NULL, 'l'},
+  {HMASK,             required_argument, NULL, 'm'},
   {"promiscuous",     no_argument,       NULL, 'p'},
   {"packet-buffered", no_argument,       NULL, 'U'},
   {"verbose",         no_argument,       NULL, 'v'},
@@ -94,28 +109,29 @@ static const struct usage_opt usage_options[] = {
   {'d', "DIRECTION", "Capture only packets matching DIRECTION. DIRECTION can"
                         " be 'rx', 'tx', or 'rxtx'. Default matches invocation"
                          " (i.e. DIRECTION defaults to 'rx' when invocation is"
-                                 " 'rxcpu', 'tx' when 'txcpu', and 'rxtx' when"
-                                                               " 'rxtxcpu')."},
+                       " '" RXSELF "', 'tx' when '" TXSELF "', and 'rxtx' when"
+                                                          " '" RXTXSELF "')."},
   {'h', NULL,        "Display this help and exit."},
-  {'l', "CPULIST",   "Capture only on cpus in CPULIST (e.g. if CPULIST is"
-                      " '0,2-4,6', only packets on cpus 0, 2, 3, 4, and 6 will"
-                                                             " be captured)."},
-  {'m', "CPUMASK",   "Capture only on cpus in CPUMASK (e.g. if CPUMASK is"
-                        " '5d', only packets on cpus 0, 2, 3, 4, and 6 will be"
-                                                                " captured)."},
+  {'l', ULIST,       "Capture only on " FSUBJECTS " in " ULIST " (e.g. if "
+                        ULIST " is '0,2-4,6', only packets on " FSUBJECTS " 0,"
+                                         " 2, 3, 4, and 6 will be captured)."},
+  {'m', UMASK,       "Capture only on " FSUBJECTS " in " UMASK " (e.g. if "
+                       UMASK " is '5d', only packets on " FSUBJECTS " 0, 2, 3,"
+                                               " 4, and 6 will be captured)."},
   {'p', NULL,        "Put the interface into promiscuous mode."},
   {'U', NULL,        "When writing to a pcap file, the write buffer will be"
                            " flushed just after each packet is placed in it."},
   {'v', NULL,        "Display more verbose output."},
   {'V', NULL,        "Display the version and exit."},
   {'w', "FILE",      "Write packets to FILE in pcap format. FILE is used as a"
-                      " template for per-cpu filenames (e.g. if capturing on a"
-                           " system with 2 cpus, cpus 0 and 1, and FILE set to"
-                            " 'out.pcap', the cpu 0 capture will be written to"
-                       " 'out-0.pcap' and the cpu 1 capture will be written to"
+                            " template for per-" HSUBJECT " filenames (e.g. if"
+                                " capturing on a system with 2 " FSUBJECTS ", "
+                         FSUBJECTS " 0 and 1, and FILE set to 'out.pcap', the "
+                          FSUBJECT " 0 capture will be written to 'out-0.pcap'"
+                           " and the " FSUBJECT " 1 capture will be written to"
                             " 'out-1.pcap'). Writing to stdout is supported by"
                            " setting FILE to '-', but only when capturing on a"
-                                                               " single cpu."},
+                                                      " single " FSUBJECT "."},
   {0, NULL, NULL}
 };
 
@@ -352,7 +368,7 @@ int main(int argc, char **argv) {
   program_basename = basename(argv[0]);
 
   int c = 0;
-  int cpus = 0;
+  int rings = 0;
   int i = 0;
   int status = 0;
   int worker_count = 0;
@@ -360,8 +376,8 @@ int main(int argc, char **argv) {
   bool help = false;
 
   char *badopt = NULL;
-  char *cpu_list = NULL;
-  char *cpu_mask = NULL;
+  char *list = NULL;
+  char *mask = NULL;
   char *endptr = NULL;
 
   FILE *out = stdout;
@@ -399,9 +415,9 @@ int main(int argc, char **argv) {
   /*
    * direction default is based on the invocation.
    */
-  if (strcmp(program_basename, "rxcpu") == 0) {
+  if (strcmp(program_basename, RXSELF) == 0) {
     status = rxtx_set_direction(&rtd, PCAP_D_IN);
-  } else if (strcmp(program_basename, "txcpu") == 0) {
+  } else if (strcmp(program_basename, TXSELF) == 0) {
     status = rxtx_set_direction(&rtd, PCAP_D_OUT);
   } else {
     status = rxtx_set_direction(&rtd, PCAP_D_INOUT);
@@ -461,9 +477,9 @@ int main(int argc, char **argv) {
         break;
 
       case 'l':
-        cpu_list = optarg;
+        list = optarg;
         if (parse_cpu_list(optarg, &ring_set)) {
-          fprintf(stderr, "%s: Invalid cpu list '%s'.\n", program_basename,
+          fprintf(stderr, "%s: Invalid " FLIST " '%s'.\n", program_basename,
                                                                        optarg);
           usage_short();
           return EXIT_FAIL_OPTION;
@@ -471,9 +487,9 @@ int main(int argc, char **argv) {
         break;
 
       case 'm':
-        cpu_mask = optarg;
+        mask = optarg;
         if (parse_cpu_mask(optarg, &ring_set)) {
-          fprintf(stderr, "%s: Invalid cpu mask '%s'.\n", program_basename,
+          fprintf(stderr, "%s: Invalid " FMASK " '%s'.\n", program_basename,
                                                                        optarg);
           usage_short();
           return EXIT_FAIL_OPTION;
@@ -572,94 +588,11 @@ int main(int argc, char **argv) {
     return EXIT_OK;
   }
 
-  if (cpu_list && cpu_mask) {
-    fprintf(stderr, "%s: -l [--cpu-list] and -m [--cpu-mask] are mutually"
+  if (list && mask) {
+    fprintf(stderr, "%s: -l [--" HLIST "] and -m [--" HMASK "] are mutually"
                                             " exclusive.\n", program_basename);
     usage_short();
     return EXIT_FAIL_OPTION;
-  }
-
-  /*
-   * We need to know how many processors are configured.
-   */
-  cpus = sysconf(_SC_NPROCESSORS_CONF);
-  if (cpus <= 0) {
-    fprintf(stderr, "%s: Failed to get processor count.\n", program_basename);
-    return EXIT_FAIL;
-  }
-
-  status = rxtx_set_ring_count(&rtd, cpus);
-  if (status == RXTX_ERROR) {
-    fprintf(stderr, "%s: %s\n", program_basename, errbuf);
-    return EXIT_FAIL;
-  }
-
-  if (rxtx_verbose_isset(&rtd)) {
-    fprintf(stderr, "Found '%d' processors.\n", rxtx_get_ring_count(&rtd));
-  }
-
-  if (RING_COUNT(&ring_set) == 0) {
-    for_each_ring(i, &rtd) {
-      RING_SET(i, &ring_set);
-    }
-  }
-
-  worker_count = 0;
-  for_each_ring(i, &rtd) {
-    if (RING_ISSET(i, &ring_set)) {
-      worker_count++;
-    }
-  }
-  if (!worker_count) {
-    fprintf(stderr, "%s: No configured cpus present in cpu %s.\n",
-                                 program_basename, cpu_list ? "list" : "mask");
-    usage_short();
-    return EXIT_FAIL_OPTION;
-  }
-
-  cpu_set_t online_cpu_set;
-  if (get_online_cpu_set(&online_cpu_set) != 0) {
-    fprintf(stderr, "%s: Failed to get online cpu set.\n", program_basename);
-    return EXIT_FAIL_OPTION;
-  }
-
-  if (CPU_COUNT(&online_cpu_set) != rxtx_get_ring_count(&rtd)) {
-    for_each_ring(i, &rtd) {
-      if (!CPU_ISSET(i, &online_cpu_set)) {
-        RING_CLR(i, &ring_set);
-        if (rxtx_verbose_isset(&rtd)) {
-          fprintf(stderr, "Skipping cpu '%d' since it is offline.\n", i);
-        }
-      }
-    }
-  }
-
-  worker_count = 0;
-  for_each_ring(i, &rtd) {
-    if (RING_ISSET(i, &ring_set)) {
-      worker_count++;
-    }
-  }
-  if (!worker_count) {
-    fprintf(stderr, "%s: No online cpus present in cpu %s.\n",
-                                 program_basename, cpu_list ? "list" : "mask");
-    usage_short();
-    return EXIT_FAIL_OPTION;
-  }
-
-  if (rxtx_get_savefile_template(&rtd) &&
-                          strcmp(rxtx_get_savefile_template(&rtd), "-") == 0 &&
-                                                  RING_COUNT(&ring_set) != 1) {
-    fprintf(stderr, "%s: Write file '-' (stdout) is only permitted when"
-                            " capturing on a single cpu.\n", program_basename);
-    usage_short();
-    return EXIT_FAIL_OPTION;
-  }
-
-  status = rxtx_set_ring_set(&rtd, &ring_set);
-  if (status == RXTX_ERROR) {
-    fprintf(stderr, "%s: %s\n", program_basename, errbuf);
-    return EXIT_FAIL;
   }
 
   if ((optind + 1) < argc) {
@@ -681,6 +614,89 @@ int main(int argc, char **argv) {
       fprintf(stderr, "%s: %s\n", program_basename, errbuf);
       return EXIT_FAIL;
     }
+  }
+
+  rings = sysconf(_SC_NPROCESSORS_CONF);
+  if (rings <= 0) {
+    fprintf(stderr, "%s: Failed to get " FSUBJECT " count.\n",
+                                                             program_basename);
+    return EXIT_FAIL;
+  }
+
+  status = rxtx_set_ring_count(&rtd, rings);
+  if (status == RXTX_ERROR) {
+    fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+    return EXIT_FAIL;
+  }
+
+  if (rxtx_verbose_isset(&rtd)) {
+    fprintf(stderr, "Found '%d' " FSUBJECTS ".\n", rxtx_get_ring_count(&rtd));
+  }
+
+  if (RING_COUNT(&ring_set) == 0) {
+    for_each_ring(i, &rtd) {
+      RING_SET(i, &ring_set);
+    }
+  }
+
+  worker_count = 0;
+  for_each_ring(i, &rtd) {
+    if (RING_ISSET(i, &ring_set)) {
+      worker_count++;
+    }
+  }
+  if (!worker_count) {
+    fprintf(stderr, "%s: No configured " FSUBJECTS " present in %s.\n",
+                                       program_basename, list ? FLIST : FMASK);
+    usage_short();
+    return EXIT_FAIL_OPTION;
+  }
+
+  cpu_set_t online;
+  if (get_online_cpu_set(&online) != 0) {
+    fprintf(stderr, "%s: Failed to get online " FSUBJECT " set.\n",
+                                                             program_basename);
+    return EXIT_FAIL_OPTION;
+  }
+
+  if (CPU_COUNT(&online) != rxtx_get_ring_count(&rtd)) {
+    for_each_ring(i, &rtd) {
+      if (!CPU_ISSET(i, &online)) {
+        RING_CLR(i, &ring_set);
+        if (rxtx_verbose_isset(&rtd)) {
+          fprintf(stderr, "Skipping " FSUBJECT " '%d' since it is offline.\n",
+                                                                            i);
+        }
+      }
+    }
+  }
+
+  worker_count = 0;
+  for_each_ring(i, &rtd) {
+    if (RING_ISSET(i, &ring_set)) {
+      worker_count++;
+    }
+  }
+  if (!worker_count) {
+    fprintf(stderr, "%s: No online " FSUBJECTS " present in %s.\n",
+                                       program_basename, list ? FLIST : FMASK);
+    usage_short();
+    return EXIT_FAIL_OPTION;
+  }
+
+  if (rxtx_get_savefile_template(&rtd) &&
+                          strcmp(rxtx_get_savefile_template(&rtd), "-") == 0 &&
+                                                  RING_COUNT(&ring_set) != 1) {
+    fprintf(stderr, "%s: Write file '-' (stdout) is only permitted when"
+                   " capturing on a single " FSUBJECT ".\n", program_basename);
+    usage_short();
+    return EXIT_FAIL_OPTION;
+  }
+
+  status = rxtx_set_ring_set(&rtd, &ring_set);
+  if (status == RXTX_ERROR) {
+    fprintf(stderr, "%s: %s\n", program_basename, errbuf);
+    return EXIT_FAIL;
   }
 
   status = rxtx_activate(&rtd);
@@ -763,7 +779,7 @@ int main(int argc, char **argv) {
   pthread_attr_destroy(&attr);
 
   /*
-   * This loop prints our per-ring, in this case per-cpu, results.
+   * This loop prints our per-ring results.
    */
   out = stdout;
   if (rxtx_get_savefile_template(&rtd) &&
@@ -778,7 +794,7 @@ int main(int argc, char **argv) {
       return EXIT_FAIL;
     }
 
-    fprintf(out, "%ju packets captured on cpu%d.\n",
+    fprintf(out, "%ju packets captured on " FSUBJECT "%d.\n",
                                       rxtx_ring_get_packets_received(ring), i);
   }
 
