@@ -7,12 +7,18 @@ taken suitable precations for, each command before running.
 
 Setup details:
 * `ixgbe0` is an `82599ES 10-Gigabit SFI/SFP+ Network Connection (Ethernet
-     Server Adapter X520-2)` using the in-tree ixgbe driver
+     Server Adapter X520-2)` using the **in-tree** ixgbe driver
 * `eth0` is a nic in the same layer 2 network as `ixgbe0`
 * `localhost` is the host which contains `ixgbe0`
 * `remotehost` is the host which contains `eth0`
 * `192.168.24.10/24` is the ipv4 address assigned to `ixgbe0`
 * `192.168.24.11/24` is the ipv4 address assigned to `eth0`
+
+In order to keep this document simple, we've left Flow Director enabled. Since
+we'll only be testing with packets on 4-tuples never seen in the tx direction,
+we should be fine. However, if you intend to do any bidirectional testing
+please disable Flow Director as documented in [Advanced RSS Configuration](./observing-rss-on-ixgbe-advanced-rss-configuration.md).
+Otherwise, more than RSS will play a part in receive queue selection.
 
 We'll be using the traditional verification data provided by Microsoft (no,
 this verification data is not specific to Windows).
@@ -90,10 +96,10 @@ We now know what results we expect; time to see what actually we get. Using
 
 We'll leave `rxqueue` running on `localhost`.
 
-On `remotehost` we'll use `hping3` to send tcp packets for each ipv4 tuple in
+On `remotehost` we'll use `hping3` to send tcp packets for each ipv4 4-tuple in
 the verification data. We leverage routes so that these packets are given a mac
-address and configure the routes to be via `ixgbe0`'s ipv4 address so that these
-packets are given `ixgbe0`'s mac address (no need for promiscuous mode).
+address and configure the routes to be via `ixgbe0`'s ipv4 address so that
+these packets are given `ixgbe0`'s mac address (no need for promiscuous mode).
 [`rss-validate-across-wire.sh`](../../contrib/rss-validate-across-wire/) can be used
 for this or the following commands preceeded by `+` can be run manually.
 ```

@@ -1,3 +1,3 @@
 # rss-validate-across-wire
 
-See [Documentation/case-studies/observing-rss-on-ixgbe-basic-rss-validation.md](../../Documentation/case-studies/observing-rss-on-ixgbe-basic-rss-validation.md)
+See [Observing RSS on ixgbe](../../Documentation/case-studies/observing-rss-on-ixgbe.md).
