@@ -73,3 +73,4 @@ On older out-of-tree ixgbe versions (v2.0.34.3..v3.9.17), the module parameter
 ## Configuration Topics
 
 * [RSS Hash Fields](./observing-rss-on-ixgbe-advanced-rss-configuration-rss-hash-fields.md)
+* [RSS Hash Key](./observing-rss-on-ixgbe-advanced-rss-configuration-rss-hash-key.md)
