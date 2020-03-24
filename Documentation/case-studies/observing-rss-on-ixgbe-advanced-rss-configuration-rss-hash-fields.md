@@ -16,7 +16,7 @@ Setup details:
 * Flow Director is disabled as documented in [Advanced RSS Configuration](./observing-rss-on-ixgbe-advanced-rss-configuration.md)
 
 We'll again be using the traditional verification data provided by Microsoft
-(as we did previously in [Basic RSS Validation](./observing-rss-on-ixgbe-basic-rss-validation.md).
+(as we did previously in [Basic RSS Validation](./observing-rss-on-ixgbe-basic-rss-validation.md)).
 
 https://docs.microsoft.com/en-us/windows-hardware/drivers/network/verifying-the-rss-hash-calculation
 
