@@ -148,7 +148,7 @@ round-trip min/avg/max = 0.0/0.0/0.0 ms
 
 Over on `localhost` we can now stop our `rxqueue` with Ctrl-C or similar.
 ```
-[user@localhost:~]$ sudo rxqueue -pw test.pcap ixgbe0
+[user@localhost:~]$ sudo rxqueue -w test.pcap ixgbe0
 ^C
 0 packets captured on queue 0.
 0 packets captured on queue 1.
