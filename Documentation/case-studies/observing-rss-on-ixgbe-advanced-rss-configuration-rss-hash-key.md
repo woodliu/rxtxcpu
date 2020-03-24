@@ -203,8 +203,7 @@ Over on `localhost` we can now stop our `rxqueue` with Ctrl-C or similar.
 ```
 
 Using `tcpdump` we can see that the packets, in both directions, from the same
-simulated "connection" did in fact land on the same queue. RSS hash key
-configuration has been observed.
+simulated "connection" did in fact land on the same queue.
 ```
 [user@localhost:~]$ for i in test-{7,12,14}.pcap; do tcpdump -Snnr "$i"; done
 reading from file test-7.pcap, link-type EN10MB (Ethernet)
@@ -231,3 +230,5 @@ reading from file test-14.pcap, link-type EN10MB (Ethernet)
 14:58:21.000000 IP 202.188.127.2.1303 > 153.39.163.191.44251: Flags [S.], seq 2051839150, ack 302624297, win 512, length 0
 14:58:21.000000 IP 202.188.127.2.1303 > 153.39.163.191.44251: Flags [S.], seq 238505757, ack 252586873, win 512, length 0
 ```
+
+RSS hash key configuration has been observed.

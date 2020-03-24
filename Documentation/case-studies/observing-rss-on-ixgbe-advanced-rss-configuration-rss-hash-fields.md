@@ -314,7 +314,7 @@ Stop our `rxqueue` with Ctrl-C or similar.
 ```
 
 Using `tcpdump` we can see that the packets did in fact land on the queues we
-expected. RSS hash field configuration has been observed.
+expected.
 ```
 [user@localhost:~]$ for i in test-{2,8,10,15}.pcap; do tcpdump -Snnr "$i"; done
 reading from file test-2.pcap, link-type EN10MB (Ethernet)
@@ -337,3 +337,5 @@ reading from file test-15.pcap, link-type EN10MB (Ethernet)
 15:12:33.000000 IP 38.27.205.30.48228 > 209.142.163.6.2217: UDP, length 0
 15:12:33.000000 IP 38.27.205.30.48228 > 209.142.163.6.2217: UDP, length 0
 ```
+
+RSS hash field configuration has been observed.
